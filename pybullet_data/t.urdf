@@ -1,0 +1,8 @@
+import pybullet as p
+cin = p.connect(p.SHARED_MEMORY)
+if (cin < 0):
+    cin = p.connect(p.GUI)
+objects = [p.loadURDF("plane.urdf", 3.000000,3.000000,0.000000,0.000000,0.000000,0.000000,1.000000)]
+p.setGravity(0.000000,0.000000,0.000000)
+p.stepSimulation()
+p.disconnect()
