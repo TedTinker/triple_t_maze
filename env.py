@@ -62,7 +62,8 @@ class Env():
         
         rgb = np.divide(rgba[:,:,:-1], 255) * 2 - 1
         d = np.nan_to_num(np.expand_dims(depth, axis=-1), nan=1)
-        d = (d.max() - d)/(d.max()-d.min())
+        if(d.max() == d.min()): pass
+        else: d = (d.max() - d)/(d.max()-d.min())
         d = d*2 - 1
         rgbd = np.concatenate([rgb, d], axis = -1)
         rgbd = torch.from_numpy(rgbd).float()

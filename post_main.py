@@ -169,7 +169,7 @@ def make_mega_vid(fps = 4):
 def make_end_pics(training_name):
     folders = []
     for folder in os.listdir("saves"):
-        if(folder.split('_')[0] == training_name and folder.split('_')[1] != "positions"):
+        if("_".join(folder.split("_")[:-1]) == training_name and folder.split('_')[-1] != "positions"):
             folders.append(folder)
 
     new_folder = "saves/{}_done".format(training_name)
@@ -209,5 +209,6 @@ else:
     from utils import args as util_args
     torch.save(util_args, "saves/args.pt")
     new_text("\n\nDone!")
+
 
 
