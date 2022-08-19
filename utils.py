@@ -7,7 +7,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--id",                 type=int,   default = 0)
-parser.add_argument("--explore_type",       type=str,   default = "NOTHING") 
+parser.add_argument("--explore_type",       type=str,   default = "POST_MAIN") 
 
 parser.add_argument('--boxes_per_cube',     type=int,   default = 2)    
 parser.add_argument('--reward_scaling',     type=float, default = .999)    

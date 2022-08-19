@@ -8,6 +8,7 @@ args = parser.parse_args()
 
 import os
 from PIL import Image
+import cv2
 from itertools import product 
 from math import floor
 import matplotlib.pyplot as plt
@@ -17,7 +18,6 @@ import enlighten
 import torch
 
 from utils import arena_dict, new_text #When I import this, it tries using provided parameters for utils' args.
-
 
 
 
@@ -117,47 +117,54 @@ def get_positions(training_name):
                            folder = training_name + "_positions",
                            load_name = load_name)
             
-def make_gif(training_name, duration = 500):
+
+    
+def make_vid(training_name, fps = 4):
     files = []
     folder = "saves/{}_positions".format(training_name)
     for file in os.listdir(folder):
         if(file[-4:] == ".png"):
             files.append(file)
     files.sort()
-    frames = []
-    for file in files:
-        new_frame = Image.open(folder + "/" +file)
-        frames.append(new_frame)
-    frames[0].save(folder + "/animation.gif", format="GIF",
-                append_images=frames[1:],
-                save_all=True,
-                duration=duration, loop=0)
     
-def make_mega_gif(duration = 500):
-    files = {"none"    : [], 
-             "entropy" : [], 
-             "curious" : []}
-    for k in files.keys():
+    frame = cv2.imread(folder + "/" + files[0]); height, width, layers = frame.shape
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX') 
+    video = cv2.VideoWriter("saves/{}_video.avi".format(training_name), fourcc, fps, (width, height))
+    for file in files:
+        video.write(cv2.imread(folder + "/" + file))
+    cv2.destroyAllWindows()
+    video.release()
+    
+def make_mega_vid(fps = 4):
+    folders = [] 
+    for f in os.listdir("saves"):
+        if os.path.isfile("saves/" + f): pass
+        else: folders.append("_".join(f.split("_")[:-1]))
+    types = list(set(folders)) 
+    types.sort()
+    types = {t : [] for t in types}
+        
+    for k in types.keys():
         folder = "saves/{}_positions".format(k)
         for file in os.listdir(folder):
             if(file[-4:] == ".png"):
-                files[k].append(file)
-        files[k].sort()
+                types[k].append(file)
+        types[k].sort()
     
-    bigger_images = []
+    os.mkdir("saves/all_positions")
     
-    for i in range(len(files["none"])):
+    for i in range(len(types[list(types.keys())[0]])):
         images = []
-        for kind in ["none", "entropy", "curious"]:
-            images.append(Image.open("saves/{}_positions/{}".format(kind, files[kind][i])))
-        new_image = Image.new("RGB", (3*images[0].size[0], images[0].size[1]))
+        for kind in list(types.keys()):
+            images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+        new_image = Image.new("RGB", (len(list(types.keys()))*images[0].size[0], images[0].size[1]))
         for j, image in enumerate(images):
             new_image.paste(image, (j*image.size[0],0))
-        bigger_images.append(new_image)
-    bigger_images[0].save("saves/all_animations.gif", format="GIF",
-                append_images=bigger_images[1:],
-                save_all=True,
-                duration=duration, loop=0)
+        new_image.save("saves/all_positions/{}.png".format(str(i).zfill(5)), format="PNG")
+        
+    make_vid("all", fps)
+    
+    
     
 def make_end_pics(training_name):
     folders = []
@@ -196,10 +203,11 @@ def make_end_pics(training_name):
 if(args.explore_type != "ALL"):
     make_end_pics(args.explore_type)
     get_positions(args.explore_type)
-    make_gif(args.explore_type)
-    new_text("\n\nDone with {}.".format(args.explore_type))
+    new_text("\n\nDone with {}!".format(args.explore_type))
 else:
-    make_mega_gif()
+    make_mega_vid()
+    from utils import args as util_args
+    torch.save(util_args, "saves/args.pt")
     new_text("\n\nDone!")
 
 
