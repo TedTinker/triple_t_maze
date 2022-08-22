@@ -1,7 +1,6 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--pos_count",    type=int,   default = 10)
 parser.add_argument("--explore_type", type=str,   default = "ALL")
 args = parser.parse_args()
 
@@ -9,11 +8,8 @@ args = parser.parse_args()
 import os
 from PIL import Image
 import cv2
-from itertools import product 
-from math import floor
 import matplotlib.pyplot as plt
 import numpy as np 
-import enlighten
 
 import torch
 
@@ -70,44 +66,21 @@ def plot_positions(positions_lists, arena_name, folder, load_name):
 
 
     
-def positions(trainer):
-    positions_list, arena_name = trainer.get_positions(size = args.pos_count)
-    return(positions_list, arena_name)
 
-def get_positions(training_name):
-    folders = []
+
+def plot_all_positions(training_name):
+    pos_dicts = []
     f = os.listdir("saves")
     for folder in f:
-        if(folder[:-4] == training_name):
-            folders.append(folder)
-    folders.sort()
+        if(folder[-10:] == "_positions" or folder[-5:] == "_done" or folder[-4:] == ".png"): pass 
+        elif(folder[:len(training_name)] == training_name):
+            _, pos_dict = torch.load("saves/" + folder + "/pos_dict.pt")
+            pos_dicts.append(pos_dict)
         
-    load_names = os.listdir("saves/" + folders[0] + "/agents")
-    load_names.sort()
-    load_names = [l[6:-3] for l in load_names]
-        
-    pos_dict = {(l, a) : [] for l, a in product(load_names, ["1", "2", "3"])}
-    
-    manager = enlighten.Manager()
-    P = manager.counter(total = len(load_names), desc = "{} positions:".format(training_name), unit = "ticks", color = "blue")
-
-    for load_name in load_names:
-        positions_lists = []
-        for i, folder in enumerate(folders):            
-            trainer = torch.load("saves/" + folder + "/trainer.pt")
-            trainer.new_load_name("saves/" + folder, load_name)
-            which_arena = int(load_name)/trainer.args.epochs_per_arena
-            if(which_arena == floor(which_arena)): 
-                if(which_arena == 0): pass 
-                elif(which_arena == 3): which_arena = 2
-                else:
-                    trainer.current_arena = floor(which_arena) - 1
-                    positions_list, arena_name = positions(trainer)
-                    pos_dict[(load_name, arena_name)].append(positions_list)
-            trainer.current_arena = floor(which_arena)
-            positions_list, arena_name = positions(trainer)
-            pos_dict[(load_name, arena_name)].append(positions_list)
-        P.update()
+    pos_dict = pos_dicts[0]
+    for k in pos_dict.keys():
+        for pd in pos_dicts[1:]:
+            pos_dict[k] += pd[k]
     
     for (load_name, arena_name), positions_lists in pos_dict.items():
         if(positions_lists == []): pass 
@@ -202,7 +175,7 @@ def make_end_pics(training_name):
 
 if(args.explore_type != "ALL"):
     make_end_pics(args.explore_type)
-    get_positions(args.explore_type)
+    plot_all_positions(args.explore_type)
     new_text("\n\nDone with {}!".format(args.explore_type))
 else:
     make_mega_vid()
