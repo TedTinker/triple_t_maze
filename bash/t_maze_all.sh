@@ -18,5 +18,18 @@ do
    jid_list+=($jid)
 done
 
-jid=$(sbatch --dependency afterok:$(echo ${jid_list[*]} | tr ' ' :) triple_t_maze/bash/t_maze_after_all.slurm)
+jobs=0
+order="("
+for job in ${job_list[*]}
+do 
+    if [ $jobs -ne 0 ] 
+    then
+        order+="+"
+    fi
+    order+="$job" 
+    jobs+=1
+done
+order+=")"
+
+jid=$(sbatch --dependency afterok:$(echo ${jid_list[*]} | tr ' ' :) --export order=$order triple_t_maze/bash/t_maze_after_all.slurm)
 echo $jid

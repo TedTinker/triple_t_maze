@@ -6,4 +6,4 @@
 ##SBATCH --constraint 32
 
 module load singularity cuda/11.1
-singularity exec --nv t_maze.sif python triple_t_maze/post_main.py --explore_type ALL
+singularity exec --nv t_maze.sif python triple_t_maze/post_main.py --explore_type $order

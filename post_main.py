@@ -1,7 +1,7 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--explore_type", type=str,   default = "ALL")
+parser.add_argument("--explore_type", type=str)
 args = parser.parse_args()
 
 
@@ -108,14 +108,8 @@ def make_vid(training_name, fps = 4):
     cv2.destroyAllWindows()
     video.release()
     
-def make_mega_vid(fps = 4):
-    folders = [] 
-    for f in os.listdir("saves"):
-        if os.path.isfile("saves/" + f): pass
-        else: folders.append("_".join(f.split("_")[:-1]))
-    types = list(set(folders)) 
-    types.sort()
-    types = {t : [] for t in types}
+def make_mega_vid(order, fps = 4):
+    types = {t : [] for t in order}
         
     for k in types.keys():
         folder = "saves/{}_positions".format(k)
@@ -173,14 +167,14 @@ def make_end_pics(training_name):
     
 #%%
 
-if(args.explore_type != "ALL"):
+if(args.explore_type[0] != "("):
     make_end_pics(args.explore_type)
     plot_all_positions(args.explore_type)
     new_text("\n\nDone with {}!".format(args.explore_type))
 else:
-    make_mega_vid()
-    from utils import args as util_args
-    torch.save(util_args, "saves/args.pt")
+    order = args.explore_type[1:-1]
+    order = order.split("+")
+    make_mega_vid(order)
     new_text("\n\nDone!")
 
 
