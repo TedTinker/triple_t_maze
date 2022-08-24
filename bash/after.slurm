@@ -6,4 +6,4 @@
 ##SBATCH --constraint 32
 
 module load singularity cuda/11.1
-singularity exec --nv t_maze.sif python triple_t_maze/main.py --id ${SLURM_ARRAY_TASK_ID} --explore_type entropy_3 --target_entropy 3 --eta 0
+singularity exec --nv t_maze.sif python triple_t_maze/post_main.py --explore_type $explore_type

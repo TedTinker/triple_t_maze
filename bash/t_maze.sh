@@ -15,7 +15,7 @@ do
         echo $jid
         jid=(${jid// / })
         jid=${jid[3]}     
-        jid=$(sbatch --dependency afterok:$jid triple_t_maze/bash/t_maze_after_$job.slurm)
+        jid=$(sbatch --dependency afterok:$jid --export explore_type=$job triple_t_maze/bash/after.slurm)
         echo $jid
         jid=(${jid// / })
         jid=${jid[3]}     
@@ -36,5 +36,5 @@ do
 done
 order+=")"
 
-jid=$(sbatch --dependency afterok:$(echo ${jid_list[*]} | tr ' ' :) --export order=$order triple_t_maze/bash/t_maze_after_all.slurm)
+jid=$(sbatch --dependency afterok:$(echo ${jid_list[*]} | tr ' ' :) --export explore_type=$order triple_t_maze/bash/after.slurm)
 echo $jid
