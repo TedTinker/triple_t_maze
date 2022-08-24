@@ -7,15 +7,20 @@ jid_list=()
 
 for job in ${job_list[*]}
 do
-   jid=$(sbatch --array=1-${agents} triple_t_maze/bash/t_maze_$job.slurm)
-   echo $jid
-   jid=(${jid// / })
-   jid=${jid[3]}     
-   jid=$(sbatch --dependency afterok:$jid triple_t_maze/bash/t_maze_after_$job.slurm)
-   echo $jid
-   jid=(${jid// / })
-   jid=${jid[3]}     
-   jid_list+=($jid)
+    if [ $job == "break" ]
+    then
+        :
+    else
+        jid=$(sbatch --array=1-${agents} triple_t_maze/bash/t_maze_$job.slurm)
+        echo $jid
+        jid=(${jid// / })
+        jid=${jid[3]}     
+        jid=$(sbatch --dependency afterok:$jid triple_t_maze/bash/t_maze_after_$job.slurm)
+        echo $jid
+        jid=(${jid// / })
+        jid=${jid[3]}     
+        jid_list+=($jid)
+    fi
 done
 
 jobs=0

@@ -72,8 +72,9 @@ def plot_all_positions(training_name):
     pos_dicts = []
     f = os.listdir("saves")
     for folder in f:
-        if(folder[-10:] == "_positions" or folder[-5:] == "_done" or folder[-4:] == ".png"): pass 
-        elif(folder[:len(training_name)] == training_name):
+        breaks = folder.split("_")
+        if(breaks[-1] in ["positions", "done"] or folder[-4:] == ".png"): pass 
+        elif("_".join(breaks[:-1]) == training_name):
             _, pos_dict = torch.load("saves/" + folder + "/pos_dict.pt")
             pos_dicts.append(pos_dict)
         
@@ -109,7 +110,10 @@ def make_vid(training_name, fps = 4):
     video.release()
     
 def make_mega_vid(order, fps = 4):
-    types = {t : [] for t in order}
+    types = {}
+    for row in order:
+        for t in row:
+            types[t] = []
         
     for k in types.keys():
         folder = "saves/{}_positions".format(k)
@@ -120,13 +124,22 @@ def make_mega_vid(order, fps = 4):
     
     os.mkdir("saves/all_positions")
     
-    for i in range(len(types[list(types.keys())[0]])):
+    length = len(types[list(types.keys())[0]])
+    rows = len(order) 
+    columns = max([len(order[i]) for i in range(rows)])
+    positions = []
+    for i, row in enumerate(order):
+        for j, column in enumerate(row):
+            positions.append((i,j))
+        
+    for i in range(length):
         images = []
         for kind in list(types.keys()):
             images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
-        new_image = Image.new("RGB", (len(list(types.keys()))*images[0].size[0], images[0].size[1]))
+        new_image = Image.new("RGB", (columns*images[0].size[0], rows*images[0].size[1]))
         for j, image in enumerate(images):
-            new_image.paste(image, (j*image.size[0],0))
+            row, column = positions[j]
+            new_image.paste(image, (column*image.size[0],row*image.size[1]))
         new_image.save("saves/all_positions/{}.png".format(str(i).zfill(5)), format="PNG")
         
     make_vid("all", fps)
@@ -174,6 +187,13 @@ if(args.explore_type[0] != "("):
 else:
     order = args.explore_type[1:-1]
     order = order.split("+")
+    row = [] ; rows = [] 
+    for i, job in enumerate(order):
+        if(job != "break"):
+            row.append(job)
+        else:
+            rows.append(row) ; row = []
+    order = rows
     make_mega_vid(order)
     new_text("\n\nDone!")
 
