@@ -247,10 +247,9 @@ def get_x_y(losses, too_long = None):
     return(x, y)
 
 def normalize(this):
-    if(all(i == 0 for i in this)): pass
+    if(all(i == 0 for i in this) or min(this) == max(this)): pass
     else:
-        minimum = min(this); maximum = max(this)
-        this = [2*((i - minimum) / (maximum - minimum))-1 for i in this]
+        this = [2*((i - min(this)) / (max(this) - min(this)))-1 for i in this]
     return(this)
 
 

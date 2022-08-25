@@ -60,7 +60,7 @@ def plot_positions(positions_lists, arena_name, folder, load_name):
     files = os.listdir("saves")
     if(folder in files): pass
     else: os.mkdir("saves/"+folder)
-    plt.savefig("saves/"+folder+"/arena_{}_tracks_{}".format(arena_name, load_name)+".png")
+    plt.savefig("saves/"+folder+"/arena_{}_tracks_{}".format(arena_name, load_name)+".png", bbox_inches='tight')
     
     plt.close()
 
@@ -131,15 +131,27 @@ def make_mega_vid(order, fps = 4):
     for i, row in enumerate(order):
         for j, column in enumerate(row):
             positions.append((i,j))
-        
+            
+    xs = [] ; ys = []
     for i in range(length):
         images = []
         for kind in list(types.keys()):
             images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
-        new_image = Image.new("RGB", (columns*images[0].size[0], rows*images[0].size[1]))
+        for image in images:
+            xs.append(image.size[0]) ; ys.append(image.size[1])
+    x = max(xs) ; y = max(ys)
+                    
+    for i in range(length):
+        images = []
+        for kind in list(types.keys()):
+            images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+            #print(images[-1].shape)
+        new_image = Image.new("RGB", (columns*x, rows*y))
         for j, image in enumerate(images):
             row, column = positions[j]
-            new_image.paste(image, (column*image.size[0],row*image.size[1]))
+            new_image.paste(image, (column*x,row*y))
+            #print("Together:", new_image.shape)
+            #print()
         new_image.save("saves/all_positions/{}.png".format(str(i).zfill(5)), format="PNG")
         
     make_vid("all", fps)
