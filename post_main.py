@@ -55,7 +55,7 @@ def plot_positions(positions_lists, arena_name, folder, load_name):
             ax.plot(x, y, zorder = 2, color = colors[i], alpha = .5)
             ax.scatter(x[-1], y[-1], s = 100, color = "black", alpha = .5, marker = "*", zorder = 3)
             ax.scatter(x[-1], y[-1], s = 75, color = colors[i], alpha = .5, marker = "*", zorder = 4)
-    plt.title("{}: Tracks of agents {}, arena {}".format(folder, load_name, arena_name)) 
+    plt.title("{}: {} epochs, arena {}".format("_".join(folder.split("_")[:-1]), load_name, arena_name)) 
     
     files = os.listdir("saves")
     if(folder in files): pass

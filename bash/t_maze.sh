@@ -11,7 +11,8 @@ do
     then
         :
     else
-        jid=$(sbatch --array=1-${agents} triple_t_maze/bash/t_maze_$job.slurm)
+        singularity exec --nv t_maze.sif python triple_t_maze/bash/slurmcraft.py --name $job
+        jid=$(sbatch --array=1-${agents} triple_t_maze/bash/$job.slurm)
         echo $jid
         jid=(${jid// / })
         jid=${jid[3]}     
@@ -20,6 +21,7 @@ do
         jid=(${jid// / })
         jid=${jid[3]}     
         jid_list+=($jid)
+        rm triple_t_maze/bash/$job.slurm
     fi
 done
 
