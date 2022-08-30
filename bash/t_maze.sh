@@ -25,16 +25,16 @@ do
     fi
 done
 
-jobs=0
+first_job=true
 order="("
 for job in ${job_list[*]}
 do 
-    if [ $jobs -ne 0 ] 
+    if [ $first_job = false ] 
     then
         order+="+"
     fi
     order+="$job" 
-    jobs+=1
+    first_job=false
 done
 order+=")"
 

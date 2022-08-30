@@ -120,8 +120,9 @@ class Trainer():
         self.agent.train()
         manager = enlighten.Manager()
         E = manager.counter(total = 3*args.epochs_per_arena, desc = "Epochs:", unit = "ticks", color = "blue")
-        for e in range(self.args.batch_size):
-            self.epoch(plot = False, append = False)
+        if(self.args.fill_memory):
+            for e in range(self.args.batch_size):
+                self.epoch(plot = False, append = False)
         prob = range(len(self.arena_names) * self.args.epochs_per_arena)
         for e in prob:
             E.update()
@@ -151,8 +152,9 @@ class Trainer():
                 self.close_env(True)
                 if(self.args.discard_memory): self.agent.restart_memory()
                 self.env = Env(self.arena_names[self.current_arena], self.args, GUI = False)
-                for e_ in range(self.args.batch_size):
-                    self.epoch(plot = False, append = False)
+                if(self.args.fill_memory):
+                    for e_ in range(self.args.batch_size):
+                        self.epoch(plot = False, append = False)
     
     def test(self, size = 100):
         self.agent.eval()

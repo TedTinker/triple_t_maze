@@ -166,7 +166,7 @@ class Agent:
         critic2_loss.backward()
         self.critic2_optimizer.step()
         
-        # I moved this out of delay
+        # Train alpha
         if self.args.alpha == None:
             actions_pred, log_pis = self.actor.evaluate(encoded.detach())
             alpha_loss = -(self.log_alpha.cpu() * (log_pis.cpu() + self.target_entropy).detach().cpu())*masks.detach().cpu()
@@ -174,42 +174,30 @@ class Agent:
             self.alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self.alpha_optimizer.step()
-            self.alpha = torch.exp(self.log_alpha) # https://github.com/pranz24/pytorch-soft-actor-critic/blob/master/sac.py implies this comes afterward!
+            self.alpha = torch.exp(self.log_alpha) 
             
     
         # Train actor
         if self.steps % self.args.d == 0:
-            if self.args.alpha == None:
-                if self._action_prior == "normal":
-                    loc = torch.zeros(self.action_size, dtype=torch.float64)
-                    scale_tril = torch.tensor([[1, 0], [1, 1]], dtype=torch.float64)
-                    policy_prior = MultivariateNormal(loc=loc, scale_tril=scale_tril)
-                    policy_prior_log_probs = policy_prior.log_prob(actions_pred.cpu()).unsqueeze(-1)
-                elif self._action_prior == "uniform":
-                    policy_prior_log_probs = 0.0
-                Q = torch.min(
-                    self.critic1(encoded.detach(), actions_pred), 
-                    self.critic2(encoded.detach(), actions_pred)).sum(-1).unsqueeze(-1)
-                intrinsic_entropy = torch.mean((self.alpha * log_pis.cpu())*masks.detach().cpu()).item()
-                actor_loss = (self.alpha * log_pis.cpu() - policy_prior_log_probs - Q.cpu())*masks.detach().cpu()
-                actor_loss = actor_loss.sum() / masks.sum()
-            
-            else:
-                alpha_loss = None
+            if self.args.alpha == None: alpha = self.alpha 
+            else:                       
+                alpha = self.args.alpha
                 actions_pred, log_pis = self.actor.evaluate(encoded.detach())
-                if self._action_prior == "normal":
-                    loc = torch.zeros(self.action_size, dtype=torch.float64)
-                    scale_tril = torch.tensor([[1, 0], [1, 1]], dtype=torch.float64)
-                    policy_prior = MultivariateNormal(loc=loc, scale_tril=scale_tril)
-                    policy_prior_log_probs = policy_prior.log_prob(actions_pred.cpu()).unsqueeze(-1)
-                elif self._action_prior == "uniform":
-                    policy_prior_log_probs = 0.0
-                Q = torch.min(
-                    self.critic1(encoded.detach(), actions_pred.squeeze(0)), 
-                    self.critic2(encoded.detach(), actions_pred.squeeze(0))).sum(-1).unsqueeze(-1)
-                intrinsic_entropy = torch.mean((self.args.alpha * log_pis.cpu())*masks.detach().cpu()).item()
-                actor_loss = (self.args.alpha * log_pis.cpu() - policy_prior_log_probs - Q.cpu())*masks.detach().cpu()
-                actor_loss = actor_loss.sum() / masks.sum()
+                alpha_loss = None
+
+            if self._action_prior == "normal":
+                loc = torch.zeros(self.action_size, dtype=torch.float64)
+                scale_tril = torch.tensor([[1, 0], [1, 1]], dtype=torch.float64)
+                policy_prior = MultivariateNormal(loc=loc, scale_tril=scale_tril)
+                policy_prior_log_probs = policy_prior.log_prob(actions_pred.cpu()).unsqueeze(-1)
+            elif self._action_prior == "uniform":
+                policy_prior_log_probs = 0.0
+            Q = torch.min(
+                self.critic1(encoded.detach(), actions_pred), 
+                self.critic2(encoded.detach(), actions_pred)).sum(-1).unsqueeze(-1)
+            intrinsic_entropy = torch.mean((alpha * log_pis.cpu())*masks.detach().cpu()).item()
+            actor_loss = (alpha * log_pis.cpu() - policy_prior_log_probs - Q.cpu())*masks.detach().cpu()
+            actor_loss = actor_loss.sum() / masks.sum()
 
             self.actor_optimizer.zero_grad()
             actor_loss.backward()

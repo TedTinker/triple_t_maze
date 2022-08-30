@@ -14,7 +14,7 @@ for line in slurms:
     if(line == "\n"): pass 
     else:
         name, text = line.split(":")
-        slurm_dict[name[:-1]] = text[1:-1]
+        slurm_dict[name.strip()] = text.strip()
         
 
 
