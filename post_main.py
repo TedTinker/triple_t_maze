@@ -199,6 +199,7 @@ if(args.explore_type[0] != "("):
 else:
     order = args.explore_type[1:-1]
     order = order.split("+")
+    if(order[-1] != "break"): order.append("break")
     row = [] ; rows = [] 
     for i, job in enumerate(order):
         if(job != "break"):

@@ -23,7 +23,7 @@ def episode(env, agent, push = True, delay = False):
             done, win, which, pos = env.step(agent)
             positions.append(pos)
             if(delay): sleep(.5)
-            #torch.cuda.synchronize(device=device)
+            torch.cuda.synchronize(device=device)
     env.body.to_push.finalize_rewards()
     rewards = deepcopy(env.body.to_push.rew)
     if(push): env.body.to_push.push(agent.memory)

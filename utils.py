@@ -83,12 +83,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Without this, pyplot crashes the kernal
 
+already_done = False 
 os.chdir("triple_t_maze")
 folder = "saves/{}_{}".format(args.explore_type, str(args.id).zfill(3))
 if args.id != 0:
-    os.mkdir(folder)
-    os.mkdir(folder + "/agents")
-    os.mkdir(folder + "/plots")
+    try:
+        os.mkdir(folder)
+        os.mkdir(folder + "/agents")
+        os.mkdir(folder + "/plots")
+    except:
+        already_done = True
 
 def new_text(string):
     print(string + "\n")
