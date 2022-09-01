@@ -6,6 +6,7 @@ args = parser.parse_args()
 
 
 import os
+import shutil
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
@@ -122,6 +123,11 @@ def make_mega_vid(order, fps = 4):
                 types[k].append(file)
         types[k].sort()
     
+    folders = []
+    for folder in os.listdir("saves"):
+        folders.append(folder)
+    print(folders)
+    if("all_positions" in folders): shutil.rmtree("saves/all_positions")
     os.mkdir("saves/all_positions")
     
     length = len(types[list(types.keys())[0]])

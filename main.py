@@ -1,17 +1,21 @@
 #%%
 
-from utils import args, new_text, already_done
+from utils import args, new_text, already_done, folder
 from train import Trainer
 
-if(not already_done):
+if(already_done):
+    new_text("\n\n{} already done training and positions!".format(folder))
+
+else:
     trainer = Trainer(args)
     trainer.train()
+    
+    new_text("\n\n{} finished training!".format(folder))
 
     import os 
     import torch
     from itertools import product
     from math import floor
-    from utils import folder
     import enlighten
 
     load_names = os.listdir(folder + "/agents")
