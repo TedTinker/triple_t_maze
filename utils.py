@@ -19,7 +19,7 @@ parser.add_argument('--max_speed',          type=float, default = 100)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 
-parser.add_argument('--epochs_per_arena',   type=int,   default = 1000)
+parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)

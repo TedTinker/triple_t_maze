@@ -94,7 +94,7 @@ def plot_all_positions(training_name):
             
 
     
-def make_vid(training_name, fps = 4):
+def make_vid(training_name, fps = 1):
     files = []
     folder = "saves/{}_positions".format(training_name)
     for file in os.listdir(folder):
@@ -110,7 +110,7 @@ def make_vid(training_name, fps = 4):
     cv2.destroyAllWindows()
     video.release()
     
-def make_mega_vid(order, fps = 4):
+def make_mega_vid(order, fps = 1):
     types = {}
     for row in order:
         for t in row:

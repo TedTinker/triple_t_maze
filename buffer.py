@@ -24,7 +24,7 @@ class RecurrentReplayBuffer:
         args,
         o_dim = (args.image_size,args.image_size,4),
         a_dim = 2,
-        max_episode_len = 51,  # this will also serve as num_bptt
+        max_episode_len = args.max_steps + 1,  # this will also serve as num_bptt
         segment_len=None  # for non-overlapping truncated bptt, maybe need a large batch size
     ):
         # placeholders
@@ -117,7 +117,7 @@ class RecurrentReplayBuffer:
     
     def sample(self, batch_size):
       
-        if(self.num_episodes < batch_size): return False
+        if(self.num_episodes < batch_size): return self.sample(self.num_episodes)
       
         # sample episode indices
       

@@ -7,6 +7,7 @@ curious_3 :  --alpha 0 --target_entropy 0 --eta 3
 curious_5 :  --alpha 0 --target_entropy 0 --eta 5
 curious_10 : --alpha 0 --target_entropy 0 --eta 10
 curious_15 : --alpha 0 --target_entropy 0 --eta 15
+curious_30 : --alpha 0 --target_entropy 0 --eta 30
 
 default_keep_buffer : --discard_memory False --capacity 250 --eta 0 --alpha 0 --target_entropy 0
 entropy_keep_buffer : --discard_memory False --capacity 250 --eta 0
@@ -20,11 +21,13 @@ default_keep_buffer_no_fill : --discard_memory False --fill_memory False --capac
 entropy_keep_buffer_no_fill : --discard_memory False --fill_memory False --capacity 250 --eta 0
 curious_keep_buffer_no_fill : --discard_memory False --fill_memory False --capacity 250 --alpha 0 --target_entropy 0
 
-entropy_a_n_t_m4 : --eta 0 --target_entropy -4
-entropy_a_n_t_m2 : --eta 0 --target_entropy -2
-entropy_a_n_t_0  : --eta 0 --target_entropy 0
-entropy_a_n_t_2  : --eta 0 --target_entropy 2
-entropy_a_n_t_4  : --eta 0 --target_entropy 4
+entropy_t_m4 : --eta 0 --target_entropy -4
+entropy_t_m2 : --eta 0 --target_entropy -2
+entropy_t_m1 : --eta 0 --target_entropy -1
+entropy_t_0  : --eta 0 --target_entropy 0
+entropy_t_1  : --eta 0 --target_entropy 1
+entropy_t_2  : --eta 0 --target_entropy 2
+entropy_t_4  : --eta 0 --target_entropy 4
 
 entropy_a_t_t_m4 : --eta 0 --alpha .1 --target_entropy -4
 entropy_a_t_t_m2 : --eta 0 --alpha .1 --target_entropy -2
