@@ -19,9 +19,9 @@ from models import Transitioner, Actor, Critic
 
 class Agent:
     
-    def __init__(self, action_prior="normal", my_args = args):
+    def __init__(self, action_prior="normal", args = args):
         
-        self.args = my_args
+        self.args = args
         self.steps = 0
         self.action_size = 2
         

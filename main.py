@@ -4,7 +4,7 @@ from utils import args, new_text, already_done, folder
 from train import Trainer
 
 if(already_done):
-    new_text("\n\n{} already done training and positions!".format(folder))
+    new_text("\n\n{} already done training and getting positions!".format(folder))
 
 else:
     trainer = Trainer(args)

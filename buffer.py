@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from collections import namedtuple
-from utils import args, device
+from utils import device
 
 
 RecurrentBatch = namedtuple('RecurrentBatch', 'o s a r d m')
@@ -20,56 +20,51 @@ class RecurrentReplayBuffer:
     """Use this version when num_bptt == max_episode_len"""
     
     def __init__(
-        self,
-        args,
-        o_dim = (args.image_size,args.image_size,4),
-        a_dim = 2,
-        max_episode_len = args.max_steps + 1,  # this will also serve as num_bptt
-        segment_len=None  # for non-overlapping truncated bptt, maybe need a large batch size
+        self, args, segment_len=None  # for non-overlapping truncated bptt, maybe need a large batch size
     ):
-        # placeholders
-    
-    
-    
-        capacity = args.capacity
-      
-        self.o = np.zeros((capacity, max_episode_len + 1) + o_dim, dtype='float32')
-        self.s = np.zeros((capacity, max_episode_len + 1, 1), dtype='float32')
-        self.a = np.zeros((capacity, max_episode_len, a_dim), dtype='float32')
-        self.r = np.zeros((capacity, max_episode_len, 1), dtype='float32')
-        self.d = np.zeros((capacity, max_episode_len, 1), dtype='float32')
-        self.m = np.zeros((capacity, max_episode_len, 1), dtype='float32')
-        self.ep_len = np.zeros((capacity,), dtype='float32')
-        self.ready_for_sampling = np.zeros((capacity,), dtype='float32')
-      
+        
+        self.args = args
+        
         # pointers
-      
+
+        self.index = 1
         self.episode_ptr = 0
         self.time_ptr = 0
       
         # trackers
-      
+
         self.starting_new_episode = True
         self.num_episodes = 0
       
         # hyper-parameters
       
-        self.capacity = capacity
-        self.o_dim = o_dim
-        self.a_dim = a_dim
+        self.capacity = self.args.capacity
+        self.o_dim = (self.args.image_size, self.args.image_size, 4)
+        self.a_dim = 2
       
-        self.max_episode_len = max_episode_len
+        self.max_episode_len = self.args.max_steps + 1
       
         if segment_len is not None:
-            assert max_episode_len % segment_len == 0  # e.g., if max_episode_len = 1000, then segment_len = 100 is ok
+            assert self.max_episode_len % segment_len == 0  # e.g., if max_episode_len = 1000, then segment_len = 100 is ok
       
         self.segment_len = segment_len
+    
+        self.i = np.zeros((self.capacity,), dtype='int')
+        self.o = np.zeros((self.capacity, self.max_episode_len + 1) + self.o_dim, dtype='float32')
+        self.s = np.zeros((self.capacity, self.max_episode_len + 1, 1), dtype='float32')
+        self.a = np.zeros((self.capacity, self.max_episode_len, self.a_dim), dtype='float32')
+        self.r = np.zeros((self.capacity, self.max_episode_len, 1), dtype='float32')
+        self.d = np.zeros((self.capacity, self.max_episode_len, 1), dtype='float32')
+        self.m = np.zeros((self.capacity, self.max_episode_len, 1), dtype='float32')
+        self.ep_len = np.zeros((self.capacity,), dtype='float32')
+        self.ready_for_sampling = np.zeros((self.capacity,), dtype='float32')
 
     def push(self, o, s, a, r, no, ns, d, cutoff):
             
         # zero-out current slot at the beginning of an episode
       
         if self.starting_new_episode:
+            self.i[self.episode_ptr] = self.index; self.index+=1
             self.o[self.episode_ptr] = 0
             self.s[self.episode_ptr] = 0
             self.a[self.episode_ptr] = 0
@@ -122,9 +117,21 @@ class RecurrentReplayBuffer:
         # sample episode indices
       
         options = np.where(self.ready_for_sampling == 1)[0]
-        ep_lens_of_options = self.ep_len[options]
-        probas_of_options = as_probas(ep_lens_of_options)
-        choices = np.random.choice(options, p=probas_of_options, size=batch_size)
+        indeces = self.i[options]
+        indeces = indeces - indeces.min() + 1
+        indeces = np.power(indeces, self.args.power)
+        probas_of_options = as_probas(indeces)
+        choices = np.random.choice(options, p=probas_of_options, size=batch_size, replace=False)
+        
+        # I'm not sure the indeces are in correct order for the options
+        #print()
+        #print("options:", options)
+        #print()
+        #for i, p in zip(indeces, probas_of_options):
+        #    print("index {}: prob {}.".format(i, p), end = " " if i%5!=0 else "\n")
+        #print()
+        #print("choices:", choices)
+        #print()
       
         ep_lens_of_choices = self.ep_len[choices]
       

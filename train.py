@@ -39,13 +39,13 @@ q = False
 
 class Trainer():
     def __init__(
-            self, my_args = args,
+            self, args = args,
             load_folder = None, 
             load_name = None):
         
         self.current_arena = 0
         self.arena_names = ["1", "2", "3"]
-        self.args = my_args
+        self.args = args
         self.load_folder = load_folder; self.load_name = load_name
                 
         self.env     = Env(self.arena_names[self.current_arena], self.args, GUI = False)
@@ -61,7 +61,7 @@ class Trainer():
     def restart(self):
         reset_start_time()
         self.e = 0
-        self.agent = Agent(my_args = self.args)
+        self.agent = Agent(args = self.args)
         if(self.load_folder != None):
             self.agent = load_agent(
                 self.agent, suf = self.load_name, folder = self.load_folder)

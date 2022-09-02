@@ -10,32 +10,35 @@ parser.add_argument("--id",                 type=int,   default = 0)
 parser.add_argument("--explore_type",       type=str,   default = "POST_MAIN") 
 
 parser.add_argument('--boxes_per_cube',     type=int,   default = 2)    
+parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
 parser.add_argument('--body_size',          type=float, default = 2)    
-parser.add_argument('--max_steps',          type=int,   default = 30)
 parser.add_argument('--image_size',         type=int,   default = 8)
+parser.add_argument('--max_steps',          type=int,   default = 30)
 parser.add_argument('--min_speed',          type=float, default = 25)
 parser.add_argument('--max_speed',          type=float, default = 100)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
-parser.add_argument('--wall_punishment',    type=float, default = .1)
 
 parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
+parser.add_argument('--iterations',         type=int,   default = 1)
+parser.add_argument('--capacity',           type=int,   default = 500)
+parser.add_argument('--power',              type=float, default = 0)
 parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
-parser.add_argument('--capacity',           type=int,   default = 500)
+
 parser.add_argument('--show_and_save',      type=int,   default = 50)
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--iterations',         type=int,   default = 1)
+
 parser.add_argument('--batch_size',         type=int,   default = 128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
-
 parser.add_argument('--trans_lr',           type=float, default = .001) # Learning rate
 parser.add_argument('--actor_lr',           type=float, default = .001) # Learning rate
 parser.add_argument('--critic_lr',          type=float, default = .001) # Learning rate
 parser.add_argument('--alpha_lr',           type=float, default = .005) # Learning rate
+
 parser.add_argument("--alpha",               type=float, default = None) # Soft-Actor-Critic entropy aim
 parser.add_argument("--target_entropy",      type=float, default = -2)   # Soft-Actor-Critic entropy aim
 parser.add_argument("--d",                   type=int,   default = 2)    # Delay to train actors
