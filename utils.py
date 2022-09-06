@@ -418,7 +418,16 @@ def plot_which(which, name = ""):
     kinds.sort()
     kinds.insert(0, kinds.pop(-1))
     kinds.reverse()
+    # Screw that, do it manually 
+    kinds = ["FAIL, -1", 
+             "1A, 1", "1B, 2.0", 
+             "2A, 1", "2B, 1", "2C, 2.0", "2D, 1",
+             "3A, 1", "3B, 1", "3C, 2.0", "3D, 1", "3E, 1", "3F, 1", "3G, 1", "3H, 1"]
+    kinds.reverse()
     plt.scatter([0 for _ in kinds], kinds, color = (0,0,0,0))
+    plt.axhline(y = 13.5, color = (0, 0, 0, .2))
+    plt.axhline(y = 11.5, color = (0, 0, 0, .2))
+    plt.axhline(y = 7.5,  color = (0, 0, 0, .2))
     
     x = [i for i in range(1, len(which)+1)]
     divide_arenas(x)
