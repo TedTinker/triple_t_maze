@@ -123,7 +123,7 @@ class Arena():
                     cubes = [p.loadURDF("cube.urdf", (pos[0]+i*cube_size, pos[1]+j*cube_size, pos[2]+k*cube_size), 
                                     ors, globalScaling = cube_size, useFixedBase = True, physicsClientId = self.physicsClient) \
                                         for i, j, k in product([l/2 for l in range(-self.args.boxes_per_cube+1, self.args.boxes_per_cube+1, 2)], repeat=3)]
-                    bigger_cube = p.loadURDF("cube.urdf", pos, ors, globalScaling = 1.1,
+                    bigger_cube = p.loadURDF("cube.urdf", pos, ors, globalScaling = self.args.bigger_cube,
                                     useFixedBase = True, 
                                     physicsClientId = self.physicsClient)
                     self.colors[bigger_cube] = (0,0,0,0)

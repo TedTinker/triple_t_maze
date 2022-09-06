@@ -136,7 +136,6 @@ class Trainer():
                 plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = str(self.e).zfill(5))
                 plot_losses(self.losses, too_long = self.args.too_long, d = self.args.d, name = str(self.e).zfill(5))
             if(self.e >= len(self.arena_names) * self.args.epochs_per_arena):
-                new_text("\n\n{} finished training!".format(folder))
                 save_agent(self.agent, suf = self.e)
                 for string in ["wins", "which", "cumulative", "ext_int", "loss"]:
                     delete_with_name(string, subfolder = "plots")

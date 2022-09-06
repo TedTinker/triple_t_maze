@@ -6,12 +6,18 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--id",                 type=int,   default = 0)
+# Meta 
 parser.add_argument("--explore_type",       type=str,   default = "POST_MAIN") 
+parser.add_argument("--id",                 type=int,   default = 0)
 
-parser.add_argument('--boxes_per_cube',     type=int,   default = 2)    
+# Environment 
+parser.add_argument('--boxes_per_cube',     type=int,   default = 2)  
+parser.add_argument('--bigger_cube',        type=float, default = 1.4)    
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
+parser.add_argument("--gamma",              type=float, default = .99)  # For discounting reward
+
+# Agent
 parser.add_argument('--body_size',          type=float, default = 2)    
 parser.add_argument('--image_size',         type=int,   default = 8)
 parser.add_argument('--max_steps',          type=int,   default = 30)
@@ -19,60 +25,60 @@ parser.add_argument('--min_speed',          type=float, default = 25)
 parser.add_argument('--max_speed',          type=float, default = 100)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
-parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
-parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
-parser.add_argument('--iterations',         type=int,   default = 1)
-parser.add_argument('--capacity',           type=int,   default = 500)
-parser.add_argument('--power',              type=float, default = 0)
-parser.add_argument('--discard_memory',     type=bool,  default = False)
-parser.add_argument('--fill_memory',        type=bool,  default = False)
-
-parser.add_argument('--show_and_save',      type=int,   default = 50)
-parser.add_argument('--too_long',           type=int,   default = None)
-
+# Module 
 parser.add_argument('--batch_size',         type=int,   default = 128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
-parser.add_argument('--trans_lr',           type=float, default = .001) # Learning rate
-parser.add_argument('--actor_lr',           type=float, default = .001) # Learning rate
-parser.add_argument('--critic_lr',          type=float, default = .001) # Learning rate
-parser.add_argument('--alpha_lr',           type=float, default = .005) # Learning rate
+parser.add_argument('--trans_lr',           type=float, default = .001)
+parser.add_argument('--actor_lr',           type=float, default = .001) 
+parser.add_argument('--critic_lr',          type=float, default = .001) 
+parser.add_argument('--alpha_lr',           type=float, default = .005) 
 
-parser.add_argument("--alpha",               type=float, default = None) # Soft-Actor-Critic entropy aim
-parser.add_argument("--target_entropy",      type=float, default = -2)   # Soft-Actor-Critic entropy aim
-parser.add_argument("--d",                   type=int,   default = 2)    # Delay to train actors
-parser.add_argument("--eta",                 type=float, default = 5)    # Scale curiosity
-parser.add_argument("--eta_rate",            type=float, default = 1)    # Scale eta
-parser.add_argument("--gamma",               type=float, default = .99)  # For discounting reward
-parser.add_argument("--tau",                 type=float, default = 1e-2) # For soft-updating target critics
+# Memory buffer
+parser.add_argument('--capacity',           type=int,   default = 500)
+parser.add_argument('--power',              type=float, default = 2)
+parser.add_argument('--discard_memory',     type=bool,  default = False)
+parser.add_argument('--fill_memory',        type=bool,  default = False)
+
+# Training
+parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
+parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
+parser.add_argument('--iterations',         type=int,   default = 1)
+parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
+parser.add_argument("--alpha",              type=float, default = None) # Soft-Actor-Critic entropy aim
+parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
+parser.add_argument("--eta",                type=float, default = 5)    # Scale curiosity
+parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
+parser.add_argument("--tau",                type=float, default = 1e-2) # For soft-updating target critics
+
+# Plotting and saving
+parser.add_argument('--too_long',           type=int,   default = None)
+parser.add_argument('--show_and_save',      type=int,   default = 50)
 
 args = parser.parse_args()
 
 #%%
 
-
-
-
 better_expectation = ((.5, .5),(.5, 3.5))
 arena_dict = {
     "1.png" : ((2,2),                         # Start (Y, X)
-               {(0,1) : 1,                    # This reward here
-               (0,3) : better_expectation}),  # This reward here
+               {(1,1) : 1,                    # This reward here
+               (1,3) : better_expectation}),  # This reward here
     "2.png" : ((3,3),
-               {(1,0) : 1,
-                (1,6) : 1,
-                (3,0) : better_expectation,
-                (3,6) : 1}),
-    "3.png" : ((5, 4),
-                {(0,1) : 1,
-                (0,3) : 1,
-                (0,5) : better_expectation,
-                (0,7) : 1,
-                (8,1) : 1,
-                (8,3) : 1,
-                (8,5) : 1,
-                (8,7) : 1})}
+               {(1,1) : 1,
+                (1,5) : 1,
+                (3,1) : better_expectation,
+                (3,5) : 1}),
+    "3.png" : ((4, 4),
+                {(1,1) : 1,
+                (1,3) : 1,
+                (1,5) : better_expectation,
+                (1,7) : 1,
+                (5,1) : 1,
+                (5,3) : 1,
+                (5,5) : 1,
+                (5,7) : 1})}
 
 
 

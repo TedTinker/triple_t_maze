@@ -11,6 +11,7 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np 
+from itertools import chain
 
 import torch
 
@@ -117,11 +118,12 @@ def make_mega_vid(order, fps = 1):
             types[t] = []
         
     for k in types.keys():
-        folder = "saves/{}_positions".format(k)
-        for file in os.listdir(folder):
-            if(file[-4:] == ".png"):
-                types[k].append(file)
-        types[k].sort()
+        if(k != "empty_space"):
+            folder = "saves/{}_positions".format(k)
+            for file in os.listdir(folder):
+                if(file[-4:] == ".png"):
+                    types[k].append(file)
+            types[k].sort()
     
     folders = []
     for folder in os.listdir("saves"):
@@ -142,20 +144,24 @@ def make_mega_vid(order, fps = 1):
     for i in range(length):
         images = []
         for kind in list(types.keys()):
-            images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+            if(kind != "empty_space"):
+                images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
         for image in images:
             xs.append(image.size[0]) ; ys.append(image.size[1])
     x = max(xs) ; y = max(ys)
                     
     for i in range(length):
         images = []
-        for kind in list(types.keys()):
-            images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+        for kind in list(chain(*order)):
+            if(kind != "empty_space"):
+                images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+            else:
+                images.append(None)
             #print(images[-1].shape)
         new_image = Image.new("RGB", (columns*x, rows*y))
         for j, image in enumerate(images):
             row, column = positions[j]
-            new_image.paste(image, (column*x,row*y))
+            if(image != None): new_image.paste(image, (column*x,row*y))
             #print("Together:", new_image.shape)
             #print()
         new_image.save("saves/all_positions/{}.png".format(str(i).zfill(5)), format="PNG")

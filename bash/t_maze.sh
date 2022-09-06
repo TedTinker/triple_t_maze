@@ -10,6 +10,9 @@ do
     if [ $job == "break" ]
     then
         :
+    elif [ $job == "empty_space" ]
+    then
+        :
     else
         singularity exec t_maze.sif python triple_t_maze/bash/slurmcraft.py --name $job
         jid=$(sbatch --array=1-${agents} triple_t_maze/bash/$job.slurm)
