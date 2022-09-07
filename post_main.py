@@ -177,7 +177,7 @@ def make_end_pics(training_name):
             folders.append(folder)
 
     new_folder = "saves/{}_done".format(training_name)
-    if(new_folder in folders): pass
+    if("{}_done".format(training_name) in folders): pass
     else: os.mkdir(new_folder)
     
     plot_names = ["cumulative", "ext_int", "ext_int_normalized", "loss_agent", "loss_trans", "which", "wins"]
@@ -185,9 +185,15 @@ def make_end_pics(training_name):
         images = []
         for folder in folders:
             images.append(Image.open("saves/{}/plots/{}".format(folder, name+".png")))
-        new_image = Image.new("RGB", (len(folders)*images[0].size[0], images[0].size[1]))
+        new_image = Image.new("RGB", ((len(folders)+1)*images[0].size[0], images[0].size[1]))
+        w,h = images[0].size
+        arr = np.zeros((h,w,4), float)
         for i, image in enumerate(images):
             new_image.paste(image, (i*image.size[0],0))
+            imarr = np.array(image, dtype=np.uint8)
+            arr += imarr / len(images)
+        arr = np.array(np.round(arr), dtype=np.uint8)
+        new_image.paste(Image.fromarray(arr, mode="RGBA"), (len(images)*image.size[0],0))
         new_image.save(new_folder + "/{}.png".format(name))
         
     images = []    

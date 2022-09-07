@@ -207,7 +207,7 @@ def remove_folder(folder):
     shutil.rmtree("saves/" + folder)
     
 def save_plot(name):
-    plt.savefig(folder + "/plots/"+name+".png")
+    plt.savefig(folder + "/plots/"+name+".png") #, bbox_inches='tight')
   
 def delete_with_name(name, subfolder = "plots"):
     files = os.listdir(folder + "/{}".format(subfolder))
