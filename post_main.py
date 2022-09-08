@@ -15,7 +15,9 @@ from itertools import chain
 
 import torch
 
-from utils import arena_dict, new_text #When I import this, it tries using provided parameters for utils' args.
+# When I import this, it tries using provided parameters for utils' args.
+from utils import arena_dict, new_text, \
+    plot_rewards, plot_losses, plot_wins, plot_extrinsic_intrinsic, plot_which, plot_cumulative_rewards
 
 
 
@@ -169,12 +171,64 @@ def make_mega_vid(order, fps = 1):
     make_vid("all", fps)
     
     
-    
+def tuple_min_max(min_max_list):
+    mins = [min_max[0] for min_max in min_max_list]
+    maxs = [min_max[1] for min_max in min_max_list]
+    return((min(mins), max(maxs)))
+
+
 def make_end_pics(training_name):
     folders = []
     for folder in os.listdir("saves"):
         if("_".join(folder.split("_")[:-1]) == training_name and folder.split('_')[-1] != "positions"):
             folders.append(folder)
+            
+    plot_dict_list = []
+    for folder in folders:
+        plot_dict_list.append(torch.load("saves/" + folder + "/plot_dict.pt"))
+        
+    wins_rolled_min_max = []
+    rewards_min_max = [] 
+    pun_min_max = []
+    ext_min_max = []
+    cur_min_max = []
+    ent_min_max = []
+    trans_min_max = []
+    alpha_min_max = []
+    actor_min_max = []
+    critic_min_max = []
+    
+    for plot_dict in plot_dict_list:
+        wins_rolled_min_max.append((plot_dict["wins_rolled"][1], plot_dict["wins_rolled"][2]))
+        rewards_min_max.append((0, sum(plot_dict["rew"])))
+        pun_min_max.append((sum(plot_dict["pun"]), 0))
+        ext_min_max.append((plot_dict["ext"][1], plot_dict["ext"][2]))
+        cur_min_max.append((plot_dict["cur"][1], plot_dict["cur"][2]))
+        ent_min_max.append((plot_dict["ent"][1], plot_dict["ent"][2]))
+        trans_min_max.append((plot_dict["losses"][1], plot_dict["losses"][2]))
+        alpha_min_max.append((plot_dict["losses"][3], plot_dict["losses"][4]))
+        actor_min_max.append((plot_dict["losses"][5], plot_dict["losses"][6]))
+        critic_min_max.append((plot_dict["losses"][7], plot_dict["losses"][8]))
+        
+    wins_rolled_min_max = tuple_min_max(wins_rolled_min_max)
+    rewards_min_max = tuple_min_max(rewards_min_max)
+    pun_min_max = tuple_min_max(pun_min_max)
+    rewards_min_max = tuple_min_max([rewards_min_max, pun_min_max]) 
+    ext_min_max = tuple_min_max(ext_min_max)
+    cur_min_max = tuple_min_max(cur_min_max)
+    ent_min_max = tuple_min_max(ent_min_max)
+    ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
+    trans_min_max = tuple_min_max(trans_min_max)
+    alpha_min_max = tuple_min_max(alpha_min_max)
+    actor_min_max = tuple_min_max(actor_min_max)
+    critic_min_max = tuple_min_max(critic_min_max)
+    
+    for plot_dict in plot_dict_list:
+        plot_wins(plot_dict["wins_rolled"][0], folder = plot_dict["folder"], name = "", min_max = wins_rolled_min_max)
+        plot_which(plot_dict["which"], folder = plot_dict["folder"], name = "")
+        plot_cumulative_rewards(plot_dict["rew"], plot_dict["pun"], folder = plot_dict["folder"], name = "", min_max = rewards_min_max)
+        plot_extrinsic_intrinsic(plot_dict["ext"][0], plot_dict["cur"][0], plot_dict["ent"][0], folder = plot_dict["folder"], name = "", min_max = ext_min_max)
+        plot_losses(plot_dict["losses"][0], too_long = None, d = plot_dict["args"].d, folder = plot_dict["folder"], name = "", trans_min_max = trans_min_max, actor_min_max = actor_min_max, critic_min_max = critic_min_max, alpha_min_max = alpha_min_max)
 
     new_folder = "saves/{}_done".format(training_name)
     if("{}_done".format(training_name) in folders): pass

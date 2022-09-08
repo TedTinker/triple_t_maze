@@ -9,8 +9,8 @@ import enlighten
 from copy import deepcopy
 from time import sleep
 
-from utils import device, args, save_agent, load_agent, get_rolling_average,reset_start_time, folder, \
-    delete_with_name, plot_rewards, plot_losses, plot_wins, plot_extrinsic_intrinsic, plot_which, plot_cumulative_rewards, new_text
+from utils import device, args, save_agent, load_agent, get_rolling_average, reset_start_time, folder, get_min_max,\
+    delete_with_name, new_text
 from env import Env
 from agent import Agent
 
@@ -70,7 +70,7 @@ class Trainer():
         else:
             save_agent(self.agent, suf = self.e )
         self.wins = []; self.wins_rolled = []; self.which = []
-        self.extrinsics = []; self.intrinsic_curiosities = []; self.intrinsic_entropies = []
+        self.ext= []; self.int_cur = []; self.int_ent = []
         self.rewards = []; self.punishments = []
         self.losses = np.array([[None]*5])
         
@@ -108,9 +108,9 @@ class Trainer():
         losses, extrinsic, intrinsic_curiosity, intrinsic_entropy = \
             self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot = plot)
         if(append):
-            self.extrinsics.append(extrinsic)
-            self.intrinsic_curiosities.append(intrinsic_curiosity)
-            self.intrinsic_entropies.append(intrinsic_entropy)
+            self.ext.append(extrinsic)
+            self.int_cur.append(intrinsic_curiosity)
+            self.int_ent.append(intrinsic_entropy)
 
             self.losses = np.concatenate([self.losses, losses])
 
@@ -130,20 +130,32 @@ class Trainer():
             self.epoch(plot = self.e % self.args.show_and_save == 0)
             if(self.e % self.args.show_and_save == 0): 
                 save_agent(self.agent, suf = self.e)
-                plot_wins(self.wins_rolled, name = str(self.e).zfill(5))
-                plot_which(self.which, name = str(self.e).zfill(5))                
-                plot_cumulative_rewards(self.rewards, self.punishments, name = str(self.e).zfill(5))
-                plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = str(self.e).zfill(5))
-                plot_losses(self.losses, too_long = self.args.too_long, d = self.args.d, name = str(self.e).zfill(5))
+                #plot_wins(self.wins_rolled, name = str(self.e).zfill(5))
+                #plot_which(self.which, name = str(self.e).zfill(5))                
+                #plot_cumulative_rewards(self.rewards, self.punishments, name = str(self.e).zfill(5))
+                #plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = str(self.e).zfill(5))
+                #plot_losses(self.losses, too_long = self.args.too_long, d = self.args.d, name = str(self.e).zfill(5))
             if(self.e >= len(self.arena_names) * self.args.epochs_per_arena):
                 save_agent(self.agent, suf = self.e)
-                for string in ["wins", "which", "cumulative", "ext_int", "loss"]:
-                    delete_with_name(string, subfolder = "plots")
-                plot_wins(self.wins_rolled, name = "")
-                plot_which(self.which, name = "")
-                plot_cumulative_rewards(self.rewards, self.punishments, name = "")
-                plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = "")
-                plot_losses(self.losses, too_long = None, d = self.args.d, name = "")
+                plot_dict = {
+                    "args"        : self.args,
+                    "folder"      : folder,
+                    "wins_rolled" : (self.wins_rolled,) + get_min_max(self.wins_rolled),
+                    "which"       : self.which,
+                    "rew"         : self.rewards,
+                    "pun"         : self.punishments, 
+                    "ext"         : (self.ext,)  + get_min_max(self.ext),
+                    "cur"         : (self.int_cur,) + get_min_max(self.int_cur), 
+                    "ent"         : (self.int_ent,) + get_min_max(self.int_ent),
+                    "losses"      : (self.losses,) + get_min_max(self.losses[:,0].tolist()) + get_min_max(self.losses[:,1].tolist()) + get_min_max(self.losses[:,2].tolist()) + get_min_max(self.losses[:,3:])}
+                torch.save(plot_dict, folder + "/plot_dict.pt")
+                #for string in ["wins", "which", "cumulative", "ext_int", "loss"]:
+                #    delete_with_name(string, subfolder = "plots")
+                #plot_wins(self.wins_rolled, name = "")
+                #plot_which(self.which, name = "")
+                #plot_cumulative_rewards(self.rewards, self.punishments, name = "")
+                #plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = "")
+                #plot_losses(self.losses, too_long = None, d = self.args.d, name = "")
                 self.close_env(True)
                 break
             if(self.e >= (self.current_arena+1) * self.args.epochs_per_arena):

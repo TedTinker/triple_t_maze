@@ -206,7 +206,7 @@ def remove_folder(folder):
     if(folder not in files): return
     shutil.rmtree("saves/" + folder)
     
-def save_plot(name):
+def save_plot(name, folder = folder):
     plt.savefig(folder + "/plots/"+name+".png") #, bbox_inches='tight')
   
 def delete_with_name(name, subfolder = "plots"):
@@ -235,7 +235,7 @@ def plot_rewards(rewards):
     plt.close()
     
 # How to plot cumulative rewards.
-def plot_cumulative_rewards(rewards, punishments, name = ""):
+def plot_cumulative_rewards(rewards, punishments, folder = folder, name = "", min_max = (0,0)):
     total_length = len(rewards)
     x = [i for i in range(1, total_length + 1)]
     rewards = np.cumsum(rewards)
@@ -248,8 +248,9 @@ def plot_cumulative_rewards(rewards, punishments, name = ""):
     plt.plot(x, [0 for _ in range(total_length)], "--", color = "black", alpha = .5)
     plt.plot(x, rewards, color = "turquoise")
     plt.plot(x, punishments, color = "pink")
+    plt.ylim(min_max)
 
-    save_plot("cumulative" + ("_{}".format(name) if name != "" else ""))
+    save_plot("cumulative" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
     
@@ -260,6 +261,18 @@ def get_x_y(losses, too_long = None):
         x = x[-too_long:]; y = y[-too_long:]
     return(x, y)
 
+def get_min_max(this):
+    if(type(this) == list):
+        this = [t for t in this if t != None]
+        if(len(this) == 0): return((0,0))
+        return((min(this), max(this))) 
+    min_max_list = [] 
+    for column in this.T:
+        min_max_list.append(get_min_max(column.tolist()))
+    minimum = min([min_max[0] for min_max in min_max_list])
+    maximum = max([min_max[1] for min_max in min_max_list])
+    return((minimum, maximum))
+
 def normalize(this):
     if(all(i == 0 for i in this) or min(this) == max(this)): pass
     else:
@@ -268,7 +281,7 @@ def normalize(this):
 
 
 # How to plot extrinsic vs intrinsic.
-def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, name = ""):
+def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, folder = folder, name = "", min_max = (0,0)):
     
     ex, ey       = get_x_y(extrinsic)
     icx, icy     = get_x_y(intrinsic_curiosity)
@@ -286,9 +299,10 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
         plt.plot(iex, iey, color = "blue",  label = "Entropy")
     plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
     plt.legend(loc = 'upper left')
+    plt.ylim(min_max)
     
     plt.title("Average Extrinsic vs Intrinsic Rewards")
-    save_plot("ext_int" + ("_{}".format(name) if name != "" else ""))
+    save_plot("ext_int" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
     ey = normalize(ey)
@@ -306,10 +320,10 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
     if(not all(i == 0 for i in iey)):
         plt.plot(iex, iey, color = "blue",  label = "Entropy")
     plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
-    plt.legend()
+    plt.legend(loc = 'upper left')
     
     plt.title("Normalized average Extrinsic vs Intrinsic Rewards")
-    save_plot("ext_int_normalized" + ("_{}".format(name) if name != "" else ""))
+    save_plot("ext_int_normalized" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
 # Compare rewards to curiosity.
@@ -334,7 +348,7 @@ def plot_curiosity(rewards, curiosity, masks):
             
 
 # How to plot losses.
-def plot_losses(losses, too_long, d, name = ""):
+def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max = (0,0), actor_min_max = (0,0), critic_min_max = (0,0), alpha_min_max = (0,0)):
     trans_losses   = losses[:,0]
     alpha_losses   = losses[:,1]
     actor_losses   = losses[:,2]
@@ -366,7 +380,8 @@ def plot_losses(losses, too_long, d, name = ""):
     plt.ylabel("Trans losses")
     plt.legend(loc = 'upper left')
     plt.title("Transitioner loss")
-    save_plot("loss_trans" + ("_{}".format(name) if name != "" else ""))
+    plt.ylim(trans_min_max)
+    save_plot("loss_trans" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
     # Plot losses for actor, critics, and alpha
@@ -376,13 +391,15 @@ def plot_losses(losses, too_long, d, name = ""):
     ax1.plot(actor_x, actor_y, color='red', label = "Actor")
     ax1.set_ylabel("Actor losses")
     ax1.legend(loc = 'upper left')
+    ax1.set_ylim(actor_min_max)
 
     ax2 = ax1.twinx()
     divide_arenas(trans_x)
     ax2.plot(critic1_x, critic1_y, color='blue', linestyle = "--", label = "Critic")
-    ax2.plot(critic2_x, critic2_y, color='blue', linestyle = ":", label = "Critic")
+    ax2.plot(critic2_x, critic2_y, color='blue', linestyle = ":",  label = "Critic")
     ax2.set_ylabel("Critic losses")
     ax2.legend(loc = 'lower left')
+    ax2.set_ylim(critic_min_max)
     
     if(not no_alpha):
         ax3 = ax1.twinx()
@@ -390,16 +407,17 @@ def plot_losses(losses, too_long, d, name = ""):
         ax3.plot(alpha_x, alpha_y, color = (0,0,0,.5), label = "Alpha")
         ax3.set_ylabel("Alpha losses")
         ax3.legend(loc = 'upper right')
+        ax3.set_ylim(alpha_min_max)
     
     plt.title("Agent losses")
-    fig.tight_layout()
-    save_plot("loss_agent" + ("_{}".format(name) if name != "" else ""))
+    #fig.tight_layout()
+    save_plot("loss_agent" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
     
   
 # How to plot victory-rates.
-def plot_wins(wins, name = ""):
+def plot_wins(wins, folder = folder, name = "", min_max = (0,0)):
     x = [i for i in range(1, len(wins)+1)]
     divide_arenas(x)
     plt.plot(x, wins, color = "gray")
@@ -407,11 +425,11 @@ def plot_wins(wins, name = ""):
     plt.title("Win-rates")
     plt.xlabel("Episodes")
     plt.ylabel("Win-rate")
-    save_plot("wins" + ("_{}".format(name) if name != "" else ""))
+    save_plot("wins" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
 # How to plot kinds of victory.
-def plot_which(which, name = ""):
+def plot_which(which, folder = folder, name = ""):
     which = [(w, r) if type(r) in [int, float] else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
     which = [w[0] + ", " + str(w[1]) for w in which]
     kinds = list(set(which))
@@ -435,7 +453,7 @@ def plot_which(which, name = ""):
     plt.title("Kind of Win")
     plt.xlabel("Episodes")
     plt.ylabel("Which Victory")
-    save_plot("which" + ("_{}".format(name) if name != "" else ""))
+    save_plot("which" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
 
 
