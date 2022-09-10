@@ -16,6 +16,7 @@ from arena import get_physics, Arena
 # Made an environment! 
 class Env():   
     
+    
     def __init__(self, arena_name, args = args, GUI = False):
         self.args = args
         self.GUI = GUI
@@ -81,6 +82,7 @@ class Env():
             plt.show()
             plt.close()
             plt.ioff()
+            print("\n")
             
         if(view == "body"):
             return
@@ -187,15 +189,19 @@ class Env():
         return(end, win, reward)
       
 
+
 if __name__ == "__main__":
-    env = Env("1", GUI = False)#True)
+    env = Env("1", GUI = True)
     env.reset()   
     env.render("body") 
     end = False
     rewards = []
     while(end == False):
-        yaw   = 0
-        speed = 1
+        print()
+        yaw   = input("\nYaw?\n")
+        speed = input("\nSpeed?\n")
+        if(yaw == ""): yaw = 0
+        if(speed == ""): speed = 1
         end, win, reward = env.step_by_hand(float(yaw), float(speed))
         rewards.append(reward)
     for i in range(len(rewards)):
@@ -206,7 +212,11 @@ if __name__ == "__main__":
     env.close(forever = True)
 
 
+
 new_text("env.py loaded.")
+
+
+
 
 
 

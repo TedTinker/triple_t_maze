@@ -12,7 +12,7 @@ parser.add_argument("--id",                 type=int,   default = 0)
 
 # Environment 
 parser.add_argument('--boxes_per_cube',     type=int,   default = 2)  
-parser.add_argument('--bigger_cube',        type=float, default = 1.4)    
+parser.add_argument('--bigger_cube',        type=float, default = 1.2)    
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
 parser.add_argument("--gamma",              type=float, default = .99)  # For discounting reward
@@ -21,8 +21,8 @@ parser.add_argument("--gamma",              type=float, default = .99)  # For di
 parser.add_argument('--body_size',          type=float, default = 2)    
 parser.add_argument('--image_size',         type=int,   default = 8)
 parser.add_argument('--max_steps',          type=int,   default = 30)
-parser.add_argument('--min_speed',          type=float, default = 25)
-parser.add_argument('--max_speed',          type=float, default = 100)
+parser.add_argument('--max_speed',          type=float, default = 50)
+parser.add_argument('--min_speed',          type=float, default = 40)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
@@ -37,7 +37,7 @@ parser.add_argument('--alpha_lr',           type=float, default = .005)
 
 # Memory buffer
 parser.add_argument('--capacity',           type=int,   default = 500)
-parser.add_argument('--power',              type=float, default = 2)
+parser.add_argument('--power',              type=float, default = 1)
 parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
@@ -56,29 +56,30 @@ parser.add_argument("--tau",                type=float, default = 1e-2) # For so
 parser.add_argument('--too_long',           type=int,   default = None)
 parser.add_argument('--show_and_save',      type=int,   default = 50)
 
-args = parser.parse_args()
+try:    args = parser.parse_args()
+except: args, _ = parser.parse_known_args()
 
 #%%
 
 better_expectation = ((.5, .5),(.5, 3.5))
 arena_dict = {
     "1.png" : ((2,2),                         # Start (Y, X)
-               {(1,1) : 1,                    # This reward here
-               (1,3) : better_expectation}),  # This reward here
+               {(1,0) : 1,                    # This reward here
+               (1,4) : better_expectation}),  # This reward here
     "2.png" : ((3,3),
-               {(1,1) : 1,
-                (1,5) : 1,
-                (3,1) : better_expectation,
-                (3,5) : 1}),
+               {(0,1) : 1,
+                (0,5) : 1,
+                (4,1) : better_expectation,
+                (4,5) : 1}),
     "3.png" : ((4, 4),
-                {(1,1) : 1,
-                (1,3) : 1,
-                (1,5) : better_expectation,
-                (1,7) : 1,
-                (5,1) : 1,
-                (5,3) : 1,
-                (5,5) : 1,
-                (5,7) : 1})}
+                {(0,1) : 1,
+                (0,3) : 1,
+                (0,5) : better_expectation,
+                (0,7) : 1,
+                (6,1) : 1,
+                (6,3) : 1,
+                (6,5) : 1,
+                (6,7) : 1})}
 
 
 
@@ -93,7 +94,8 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Without this, pyplot crashes the kernal
 
 already_done = False 
-os.chdir("triple_t_maze")
+try:    os.chdir("triple_t_maze")
+except: pass
 folder = "saves/{}_{}".format(args.explore_type, str(args.id).zfill(3))
 if args.id != 0:
     try:
@@ -231,7 +233,8 @@ def plot_rewards(rewards):
     plt.title("Rewards")
     plt.xlabel("Time")
     plt.ylabel("Reward")
-    save_plot("rewards")
+    plt.show()
+    #save_plot("rewards")
     plt.close()
     
 # How to plot cumulative rewards.
