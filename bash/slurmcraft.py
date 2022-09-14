@@ -5,7 +5,8 @@ parser.add_argument("--name", type=str, default = "default")
 args = parser.parse_args()
 
 import os 
-os.chdir("triple_t_maze/bash")
+try:    os.chdir("triple_t_maze/bash")
+except: os.chdir("bash")
 
 slurm_dict = {}
 f = open("slurms.txt", "r")

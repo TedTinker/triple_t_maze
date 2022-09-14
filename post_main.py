@@ -130,7 +130,6 @@ def make_mega_vid(order, fps = 1):
     folders = []
     for folder in os.listdir("saves"):
         folders.append(folder)
-    print(folders)
     if("all_positions" in folders): shutil.rmtree("saves/all_positions")
     os.mkdir("saves/all_positions")
     
@@ -160,7 +159,7 @@ def make_mega_vid(order, fps = 1):
             else:
                 images.append(None)
             #print(images[-1].shape)
-        new_image = Image.new("RGB", (columns*x, rows*y))
+        new_image = Image.new("RGB", (columns*x, rows*y), color="white")
         for j, image in enumerate(images):
             row, column = positions[j]
             if(image != None): new_image.paste(image, (column*x,row*y))
@@ -171,101 +170,108 @@ def make_mega_vid(order, fps = 1):
     make_vid("all", fps)
     
     
+    
 def tuple_min_max(min_max_list):
     mins = [min_max[0] for min_max in min_max_list]
     maxs = [min_max[1] for min_max in min_max_list]
     return((min(mins), max(maxs)))
+    
+def get_min_max(this, plot_dict_list, cumulative = False):
+    these = [plot_dict[this] for plot_dict in plot_dict_list]
+    if(cumulative):
+        these = [[t for t in this if t != None] for this in these]
+        these = [sum(this) for this in these]
+        return((min(these), max(these)))
+    if(type(these[0]) == list):
+        these = [[t for t in this if t != None] for this in these]
+        mins = [min(this) for this in these]
+        maxs = [max(this) for this in these]
+        return((min(mins), max(maxs)))
+    min_max_lists = [] 
+    for this in these:
+        this_min_max_list = []
+        for column in this.T:
+            that = [t for t in column.tolist() if t != None]
+            if(len(that) == 0): this_min_max_list.append((0,0))
+            else:               this_min_max_list.append((min(that), max(that)))
+        min_max_lists.append(this_min_max_list)
+    min_max_list = []
+    for i in range(len(min_max_lists[0])):
+        min_max_list.append(tuple_min_max([min_max_lists[j][i] for j in range(len(min_max_lists))]))
+    return(min_max_list)
 
 
-def make_end_pics(training_name):
-    folders = []
+
+def make_end_pics(order):
+    real_order = [] 
+    for o in order: real_order += [o_ for o_ in o if o_ != "empty_space"]
+    order = real_order
+
+    all_folders = []
     for folder in os.listdir("saves"):
-        if("_".join(folder.split("_")[:-1]) == training_name and folder.split('_')[-1] != "positions"):
-            folders.append(folder)
-            
+        if("_".join(folder.split("_")[:-1]) in order and folder.split('_')[-1] != "positions"):
+            all_folders.append(folder)
+                
     plot_dict_list = []
-    for folder in folders:
+    for folder in all_folders:
         plot_dict_list.append(torch.load("saves/" + folder + "/plot_dict.pt"))
         
-    wins_rolled_min_max = []
-    rewards_min_max = [] 
-    pun_min_max = []
-    ext_min_max = []
-    cur_min_max = []
-    ent_min_max = []
-    trans_min_max = []
-    alpha_min_max = []
-    actor_min_max = []
-    critic_min_max = []
+    wins_rolled_min_max = get_min_max("wins_rolled", plot_dict_list)
+    rew_min_max = get_min_max("rew", plot_dict_list, True)
+    pun_min_max = get_min_max("pun", plot_dict_list, True)
+    ext_min_max = get_min_max("ext", plot_dict_list)
+    cur_min_max = get_min_max("cur", plot_dict_list)
+    ent_min_max = get_min_max("ent", plot_dict_list)
+    trans_min_max, alpha_min_max, actor_min_max, critic1_min_max, critic2_min_max = get_min_max("losses", plot_dict_list)
     
-    for plot_dict in plot_dict_list:
-        wins_rolled_min_max.append((plot_dict["wins_rolled"][1], plot_dict["wins_rolled"][2]))
-        rewards_min_max.append((0, sum(plot_dict["rew"])))
-        pun_min_max.append((sum(plot_dict["pun"]), 0))
-        ext_min_max.append((plot_dict["ext"][1], plot_dict["ext"][2]))
-        cur_min_max.append((plot_dict["cur"][1], plot_dict["cur"][2]))
-        ent_min_max.append((plot_dict["ent"][1], plot_dict["ent"][2]))
-        trans_min_max.append((plot_dict["losses"][1], plot_dict["losses"][2]))
-        alpha_min_max.append((plot_dict["losses"][3], plot_dict["losses"][4]))
-        actor_min_max.append((plot_dict["losses"][5], plot_dict["losses"][6]))
-        critic_min_max.append((plot_dict["losses"][7], plot_dict["losses"][8]))
-        
-    wins_rolled_min_max = tuple_min_max(wins_rolled_min_max)
-    rewards_min_max = tuple_min_max(rewards_min_max)
-    pun_min_max = tuple_min_max(pun_min_max)
-    rewards_min_max = tuple_min_max([rewards_min_max, pun_min_max]) 
-    ext_min_max = tuple_min_max(ext_min_max)
-    cur_min_max = tuple_min_max(cur_min_max)
-    ent_min_max = tuple_min_max(ent_min_max)
+    critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
+    rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
-    trans_min_max = tuple_min_max(trans_min_max)
-    alpha_min_max = tuple_min_max(alpha_min_max)
-    actor_min_max = tuple_min_max(actor_min_max)
-    critic_min_max = tuple_min_max(critic_min_max)
     
     for plot_dict in plot_dict_list:
-        plot_wins(plot_dict["wins_rolled"][0], folder = plot_dict["folder"], name = "", min_max = wins_rolled_min_max)
+        plot_wins(plot_dict["wins_rolled"], folder = plot_dict["folder"], name = "", min_max = wins_rolled_min_max)
         plot_which(plot_dict["which"], folder = plot_dict["folder"], name = "")
-        plot_cumulative_rewards(plot_dict["rew"], plot_dict["pun"], folder = plot_dict["folder"], name = "", min_max = rewards_min_max)
-        plot_extrinsic_intrinsic(plot_dict["ext"][0], plot_dict["cur"][0], plot_dict["ent"][0], folder = plot_dict["folder"], name = "", min_max = ext_min_max)
-        plot_losses(plot_dict["losses"][0], too_long = None, d = plot_dict["args"].d, folder = plot_dict["folder"], name = "", trans_min_max = trans_min_max, actor_min_max = actor_min_max, critic_min_max = critic_min_max, alpha_min_max = alpha_min_max)
+        plot_cumulative_rewards(plot_dict["rew"], plot_dict["pun"], folder = plot_dict["folder"], name = "", min_max = rew_min_max)
+        plot_extrinsic_intrinsic(plot_dict["ext"], plot_dict["cur"], plot_dict["ent"], folder = plot_dict["folder"], name = "", min_max = ext_min_max)
+        plot_losses(plot_dict["losses"], too_long = None, d = plot_dict["args"].d, folder = plot_dict["folder"], name = "", trans_min_max = trans_min_max, alpha_min_max = alpha_min_max, actor_min_max = actor_min_max, critic_min_max = critic_min_max)
 
-    new_folder = "saves/{}_done".format(training_name)
-    if("{}_done".format(training_name) in folders): pass
-    else: os.mkdir(new_folder)
-    
-    plot_names = ["cumulative", "ext_int", "ext_int_normalized", "loss_agent", "loss_trans", "which", "wins"]
-    for name in plot_names:
-        images = []
-        for folder in folders:
-            images.append(Image.open("saves/{}/plots/{}".format(folder, name+".png")))
-        new_image = Image.new("RGB", ((len(folders)+1)*images[0].size[0], images[0].size[1]))
-        w,h = images[0].size
-        arr = np.zeros((h,w,4), float)
-        for i, image in enumerate(images):
-            new_image.paste(image, (i*image.size[0],0))
-            imarr = np.array(image, dtype=np.uint8)
-            arr += imarr / len(images)
-        arr = np.array(np.round(arr), dtype=np.uint8)
-        new_image.paste(Image.fromarray(arr, mode="RGBA"), (len(images)*image.size[0],0))
-        new_image.save(new_folder + "/{}.png".format(name))
+    for training_name in order:
+        new_folder = "saves/{}_done".format(training_name)
+        if("{}_done".format(training_name) in all_folders): pass
+        else: os.mkdir(new_folder)
         
-    images = []    
-    files = os.listdir(new_folder); files.sort()
-    for file in files:
-        images.append(Image.open(new_folder + "/" + file))
-        os.remove(new_folder + "/" + file)
-    new_image = Image.new("RGB", (images[0].size[0], len(plot_names)*images[0].size[1]))
-    for i, image in enumerate(images):
-        new_image.paste(image, (0, i*image.size[1]))
-    new_image.save("saves/all_{}_plots.png".format(training_name))
-    os.rmdir(new_folder)
+        folders = [folder for folder in all_folders if "_".join(folder.split("_")[:-1]) == training_name]
+        plot_names = ["cumulative", "ext_int", "ext_int_normalized", "loss_agent", "loss_trans", "which", "wins"]
+        for name in plot_names:
+            images = []
+            for folder in folders:
+                images.append(Image.open("saves/{}/plots/{}".format(folder, name+".png")))
+            new_image = Image.new("RGB", ((len(folders)+1)*images[0].size[0], images[0].size[1]))
+            w,h = images[0].size
+            arr = np.zeros((h,w,4), float)
+            for i, image in enumerate(images):
+                new_image.paste(image, (i*image.size[0],0))
+                imarr = np.array(image, dtype=np.uint8)
+                arr += imarr / len(images)
+            arr = np.array(np.round(arr), dtype=np.uint8)
+            new_image.paste(Image.fromarray(arr, mode="RGBA"), (len(images)*image.size[0],0))
+            new_image.save(new_folder + "/{}.png".format(name))
+            
+        images = []    
+        files = os.listdir(new_folder); files.sort()
+        for file in files:
+            images.append(Image.open(new_folder + "/" + file))
+            os.remove(new_folder + "/" + file)
+        new_image = Image.new("RGB", (images[0].size[0], len(plot_names)*images[0].size[1]))
+        for i, image in enumerate(images):
+            new_image.paste(image, (0, i*image.size[1]))
+        new_image.save("saves/all_{}_plots.png".format(training_name))
+        os.rmdir(new_folder)
     
     
 #%%
 
 if(args.explore_type[0] != "("):
-    make_end_pics(args.explore_type)
     plot_all_positions(args.explore_type)
     new_text("\n\nDone with {}!".format(args.explore_type))
 else:
@@ -279,6 +285,7 @@ else:
         else:
             rows.append(row) ; row = []
     order = rows
+    make_end_pics(order)
     make_mega_vid(order)
     new_text("\n\nDone!")
 

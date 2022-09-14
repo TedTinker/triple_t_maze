@@ -124,7 +124,7 @@ class RecurrentReplayBuffer:
         options = np.where(self.ready_for_sampling == 1)[0]
         ep_lens_of_options = self.ep_len[options]
         probas_of_options = as_probas(ep_lens_of_options)
-        choices = np.random.choice(options, p=probas_of_options, size=batch_size)
+        choices = np.random.choice(options, p=probas_of_options, size=batch_size, replace = False)
         
         """
         options = np.where(self.ready_for_sampling == 1)[0]

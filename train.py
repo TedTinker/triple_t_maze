@@ -9,8 +9,7 @@ import enlighten
 from copy import deepcopy
 from time import sleep
 
-from utils import device, args, save_agent, load_agent, get_rolling_average, reset_start_time, folder, get_min_max,\
-    delete_with_name, new_text
+from utils import device, args, save_agent, load_agent, get_rolling_average, reset_start_time, folder, new_text
 from env import Env
 from agent import Agent
 
@@ -23,7 +22,7 @@ def episode(env, agent, push = True, delay = False):
             done, win, which, pos = env.step(agent)
             positions.append(pos)
             if(delay): sleep(.5)
-            torch.cuda.synchronize(device=device)
+            if(device == "cuda"): torch.cuda.synchronize(device=device)
     env.body.to_push.finalize_rewards()
     rewards = deepcopy(env.body.to_push.rew)
     if(push): env.body.to_push.push(agent.memory)
@@ -91,7 +90,6 @@ class Trainer():
         else:    env = self.env
         win, which, rewards, positions = \
             episode(env, self.agent, push, delay)
-        if(q): plot_rewards(rewards)
         return(int(win), which, rewards, positions)
 
     def epoch(self, plot = False, append = True):
@@ -114,8 +112,6 @@ class Trainer():
 
             self.losses = np.concatenate([self.losses, losses])
 
-        if(q): plot_losses(self.losses, too_long = self.args.too_long, d = self.args.d)
-
     def train(self):
         self.agent.train()
         manager = enlighten.Manager()
@@ -124,41 +120,15 @@ class Trainer():
             for e in range(self.args.batch_size):
                 self.epoch(plot = False, append = False)
         prob = range(len(self.arena_names) * self.args.epochs_per_arena)
+        
         for e in prob:
             E.update()
             self.e += 1
             self.epoch(plot = self.e % self.args.show_and_save == 0)
             if(self.e % self.args.show_and_save == 0): 
                 save_agent(self.agent, suf = self.e)
-                #plot_wins(self.wins_rolled, name = str(self.e).zfill(5))
-                #plot_which(self.which, name = str(self.e).zfill(5))                
-                #plot_cumulative_rewards(self.rewards, self.punishments, name = str(self.e).zfill(5))
-                #plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = str(self.e).zfill(5))
-                #plot_losses(self.losses, too_long = self.args.too_long, d = self.args.d, name = str(self.e).zfill(5))
-            if(self.e >= len(self.arena_names) * self.args.epochs_per_arena):
-                save_agent(self.agent, suf = self.e)
-                plot_dict = {
-                    "args"        : self.args,
-                    "folder"      : folder,
-                    "wins_rolled" : (self.wins_rolled,) + get_min_max(self.wins_rolled),
-                    "which"       : self.which,
-                    "rew"         : self.rewards,
-                    "pun"         : self.punishments, 
-                    "ext"         : (self.ext,)  + get_min_max(self.ext),
-                    "cur"         : (self.int_cur,) + get_min_max(self.int_cur), 
-                    "ent"         : (self.int_ent,) + get_min_max(self.int_ent),
-                    "losses"      : (self.losses,) + get_min_max(self.losses[:,0].tolist()) + get_min_max(self.losses[:,1].tolist()) + get_min_max(self.losses[:,2].tolist()) + get_min_max(self.losses[:,3:])}
-                torch.save(plot_dict, folder + "/plot_dict.pt")
-                #for string in ["wins", "which", "cumulative", "ext_int", "loss"]:
-                #    delete_with_name(string, subfolder = "plots")
-                #plot_wins(self.wins_rolled, name = "")
-                #plot_which(self.which, name = "")
-                #plot_cumulative_rewards(self.rewards, self.punishments, name = "")
-                #plot_extrinsic_intrinsic(self.extrinsics, self.intrinsic_curiosities, self.intrinsic_entropies, name = "")
-                #plot_losses(self.losses, too_long = None, d = self.args.d, name = "")
-                self.close_env(True)
-                break
-            if(self.e >= (self.current_arena+1) * self.args.epochs_per_arena):
+                
+            if(self.e >= (self.current_arena+1) * self.args.epochs_per_arena and self.current_arena+1 < len(self.arena_names)):
                 self.current_arena += 1
                 self.close_env(True)
                 if(self.args.discard_memory): self.agent.restart_memory()
@@ -166,6 +136,23 @@ class Trainer():
                 if(self.args.fill_memory):
                     for e_ in range(self.args.batch_size):
                         self.epoch(plot = False, append = False)
+
+            if(self.e >= len(self.arena_names) * self.args.epochs_per_arena):
+                save_agent(self.agent, suf = self.e)
+                plot_dict = {
+                    "args"        : self.args,
+                    "folder"      : folder,
+                    "wins_rolled" : self.wins_rolled,
+                    "which"       : self.which,
+                    "rew"         : self.rewards,
+                    "pun"         : self.punishments, 
+                    "ext"         : self.ext, 
+                    "cur"         : self.int_cur,
+                    "ent"         : self.int_ent,
+                    "losses"      : self.losses}
+                torch.save(plot_dict, folder + "/plot_dict.pt")
+                self.close_env(True)
+                break
     
     def test(self, size = 100):
         self.agent.eval()

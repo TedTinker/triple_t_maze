@@ -36,7 +36,7 @@ parser.add_argument('--critic_lr',          type=float, default = .001)
 parser.add_argument('--alpha_lr',           type=float, default = .005) 
 
 # Memory buffer
-parser.add_argument('--capacity',           type=int,   default = 500)
+parser.add_argument('--capacity',           type=int,   default = 200)
 parser.add_argument('--power',              type=float, default = 1)
 parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
@@ -264,18 +264,6 @@ def get_x_y(losses, too_long = None):
         x = x[-too_long:]; y = y[-too_long:]
     return(x, y)
 
-def get_min_max(this):
-    if(type(this) == list):
-        this = [t for t in this if t != None]
-        if(len(this) == 0): return((0,0))
-        return((min(this), max(this))) 
-    min_max_list = [] 
-    for column in this.T:
-        min_max_list.append(get_min_max(column.tolist()))
-    minimum = min([min_max[0] for min_max in min_max_list])
-    maximum = max([min_max[1] for min_max in min_max_list])
-    return((minimum, maximum))
-
 def normalize(this):
     if(all(i == 0 for i in this) or min(this) == max(this)): pass
     else:
@@ -351,7 +339,7 @@ def plot_curiosity(rewards, curiosity, masks):
             
 
 # How to plot losses.
-def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max = (0,0), actor_min_max = (0,0), critic_min_max = (0,0), alpha_min_max = (0,0)):
+def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max = (0,0), alpha_min_max = (0,0), actor_min_max = (0,0), critic_min_max = (0,0)):
     trans_losses   = losses[:,0]
     alpha_losses   = losses[:,1]
     actor_losses   = losses[:,2]

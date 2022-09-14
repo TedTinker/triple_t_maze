@@ -38,4 +38,5 @@ curious_3 :  --alpha 0 --target_entropy 0 --eta 3
 curious_5 :  --alpha 0 --target_entropy 0 --eta 5
 curious_10 : --alpha 0 --target_entropy 0 --eta 10
 curious_15 : --alpha 0 --target_entropy 0 --eta 15
+curious_20 : --alpha 0 --target_entropy 0 --eta 20
 curious_30 : --alpha 0 --target_entropy 0 --eta 30
