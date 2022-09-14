@@ -20,30 +20,14 @@ class RecurrentReplayBuffer:
     """Use this version when num_bptt == max_episode_len"""
     
     def __init__(
-        self,
-        args,
-        o_dim = (args.image_size,args.image_size,4),
-        a_dim = 2,
-        max_episode_len = args.max_steps + 1,  # this will also serve as num_bptt
-        segment_len=None  # for non-overlapping truncated bptt, maybe need a large batch size
+        self, args, segment_len=None  # for non-overlapping truncated bptt, maybe need a large batch size
     ):
-        # placeholders
     
-    
-    
-        capacity = args.capacity
-      
-        self.o = np.zeros((capacity, max_episode_len + 1) + o_dim, dtype='float32')
-        self.s = np.zeros((capacity, max_episode_len + 1, 1), dtype='float32')
-        self.a = np.zeros((capacity, max_episode_len, a_dim), dtype='float32')
-        self.r = np.zeros((capacity, max_episode_len, 1), dtype='float32')
-        self.d = np.zeros((capacity, max_episode_len, 1), dtype='float32')
-        self.m = np.zeros((capacity, max_episode_len, 1), dtype='float32')
-        self.ep_len = np.zeros((capacity,), dtype='float32')
-        self.ready_for_sampling = np.zeros((capacity,), dtype='float32')
-      
+        self.args = args
+            
         # pointers
       
+        self.index = 1
         self.episode_ptr = 0
         self.time_ptr = 0
       
@@ -54,16 +38,31 @@ class RecurrentReplayBuffer:
       
         # hyper-parameters
       
-        self.capacity = capacity
-        self.o_dim = o_dim
-        self.a_dim = a_dim
+        self.capacity = self.args.capacity
+        self.o_dim = (self.args.image_size, self.args.image_size, 4)
+        self.a_dim = 2
       
-        self.max_episode_len = max_episode_len
+        self.max_episode_len = args.max_steps + 1
       
         if segment_len is not None:
-            assert max_episode_len % segment_len == 0  # e.g., if max_episode_len = 1000, then segment_len = 100 is ok
+            assert self.max_episode_len % segment_len == 0  # e.g., if max_episode_len = 1000, then segment_len = 100 is ok
       
         self.segment_len = segment_len
+      
+        # placeholders
+
+        self.o = np.zeros((self.args.capacity, self.max_episode_len + 1) + self.o_dim, dtype='float32')
+        self.s = np.zeros((self.args.capacity, self.max_episode_len + 1, 1), dtype='float32')
+        self.a = np.zeros((self.args.capacity, self.max_episode_len, self.a_dim), dtype='float32')
+        self.r = np.zeros((self.args.capacity, self.max_episode_len, 1), dtype='float32')
+        self.d = np.zeros((self.args.capacity, self.max_episode_len, 1), dtype='float32')
+        self.m = np.zeros((self.args.capacity, self.max_episode_len, 1), dtype='float32')
+        
+        self.i = np.zeros((self.args.capacity,), dtype = int)
+        self.ep_len = np.zeros((self.args.capacity,), dtype='float32')
+        self.ready_for_sampling = np.zeros((self.args.capacity,), dtype='int')
+      
+
 
     def push(self, o, s, a, r, no, ns, d, cutoff):
             
@@ -76,6 +75,8 @@ class RecurrentReplayBuffer:
             self.r[self.episode_ptr] = 0
             self.d[self.episode_ptr] = 0
             self.m[self.episode_ptr] = 0
+            
+            self.i[self.episode_ptr] = self.index
             self.ep_len[self.episode_ptr] = 0
             self.ready_for_sampling[self.episode_ptr] = 0
             self.starting_new_episode = False
@@ -100,6 +101,7 @@ class RecurrentReplayBuffer:
         
             # reset pointers
         
+            self.index += 1
             self.episode_ptr = (self.episode_ptr + 1) % self.capacity
             self.time_ptr = 0
         
