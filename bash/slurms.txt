@@ -3,6 +3,22 @@ entropy : --eta 0
 curious : --alpha 0 --target_entropy 0
 both    : --target_entropy -1
 
+default_uniform : --eta 0 --alpha 0 --target_entropy 0
+entropy_uniform : --eta 0
+curious_uniform : --alpha 0 --target_entropy 0
+
+default_power_1 : --eta 0 --alpha 0 --target_entropy 0 --selection power
+entropy_power_1 : --eta 0 --selection power
+curious_power_1 : --alpha 0 --target_entropy 0 --selection power
+
+default_power_2 : --eta 0 --alpha 0 --target_entropy 0 --selection power --power 2
+entropy_power_2 : --eta 0 --selection power  --power 2
+curious_power_2 : --alpha 0 --target_entropy 0 --selection power  --power 2
+
+default_power_4 : --eta 0 --alpha 0 --target_entropy 0 --selection power  --power 4
+entropy_power_4 : --eta 0 --selection power  --power 4
+curious_power_4 : --alpha 0 --target_entropy 0 --selection power  --power 4
+
 default_square : --eta 0 --alpha 0 --target_entropy 0 --power 2
 default_cube   : --eta 0 --alpha 0 --target_entropy 0 --power 3
 default_big    : --eta 0 --alpha 0 --target_entropy 0 --power 5 

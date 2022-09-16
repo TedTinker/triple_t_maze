@@ -123,19 +123,17 @@ class RecurrentReplayBuffer:
       
         # sample episode indices
       
-        options = np.where(self.ready_for_sampling == 1)[0]
-        ep_lens_of_options = self.ep_len[options]
-        probas_of_options = as_probas(ep_lens_of_options)
-        choices = np.random.choice(options, p=probas_of_options, size=batch_size, replace = False)
+        if(self.args.selection == "uniform"):
+            self.args.power = 0
+            self.args.selection = "power"
         
-        """
-        options = np.where(self.ready_for_sampling == 1)[0]
-        indeces = self.i[options]
-        indeces = indeces - indeces.min() + 1
-        indeces = np.power(indeces, self.args.power)
-        probas_of_options = as_probas(indeces)
-        choices = np.random.choice(options, p=probas_of_options, size=batch_size, replace=False)
-        """
+        if(self.args.selection == "power"):
+            options = np.where(self.ready_for_sampling == 1)[0]
+            indices = self.i[options]
+            indices = indices - indices.min() + 1
+            indices = np.power(indices, self.args.power)
+            weights = as_probas(indices)
+            choices = np.random.choice(options, p=weights, size=batch_size, replace=False)
       
         ep_lens_of_choices = self.ep_len[choices]
       

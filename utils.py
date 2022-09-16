@@ -37,6 +37,7 @@ parser.add_argument('--alpha_lr',           type=float, default = .005)
 
 # Memory buffer
 parser.add_argument('--capacity',           type=int,   default = 500)
+parser.add_argument('--selection',          type=str,   default = "uniform")
 parser.add_argument('--power',              type=float, default = 1)
 parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
