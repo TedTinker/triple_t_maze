@@ -8,6 +8,8 @@ args = parser.parse_args()
 import os
 import shutil
 from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np 
@@ -267,6 +269,38 @@ def make_end_pics(order):
             new_image.paste(image, (0, i*image.size[1]))
         new_image.save("saves/all_{}_plots.png".format(training_name))
         os.rmdir(new_folder)
+        
+def make_together_pic(order):
+    real_order = [] 
+    for o in order: real_order += [o_ for o_ in o if o_ != "empty_space"]
+    order = real_order
+    
+    images = [] ; names = []
+    for f in os.listdir("saves"):
+        if f[-4:] == ".png" and f[:4] == "all_":
+            name = f[4:-10]
+            if name in order:
+                images.append(Image.open("saves/{}".format(f)))
+                names.append(name)
+            
+    indices = [names.index(name) for name in order]
+    names = [names[index] for index in indices]
+    images = [images[index] for index in indices]
+    
+    width = 0
+    for f in os.listdir("saves/{}_001/plots".format(order[0])):
+        image = Image.open("saves/{}_001/plots/{}".format(order[0], f))
+        width = max(width, image.size[0])
+    w, h = images[0].size
+    images = [image.crop((w-width, 0, w, h)) for image in images]
+    
+    font = ImageFont.truetype('arial.ttf', 50)
+    new_image = Image.new("RGB", ((len(order))*width, images[0].size[1]+150), color="white")
+    for i, image in enumerate(images):
+        new_image.paste(image, (i*image.size[0], 30))
+        I1 = ImageDraw.Draw(new_image)
+        I1.text((i*image.size[0]+50,5), names[i], font = font, fill = (0,0,0))
+    new_image.save("saves/together_plots.png")
     
     
 #%%
@@ -286,6 +320,7 @@ else:
             rows.append(row) ; row = []
     order = rows
     make_end_pics(order)
+    make_together_pic(order)
     make_mega_vid(order)
     new_text("\n\nDone!")
 
