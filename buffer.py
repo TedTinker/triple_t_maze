@@ -125,9 +125,9 @@ class RecurrentReplayBuffer:
       
         if(self.args.selection == "uniform"):
             self.args.power = 0
-            self.args.selection = "power"
+            self.args.selection = "index"
         
-        if(self.args.selection == "power"):
+        if(self.args.selection == "index"):
             options = np.where(self.ready_for_sampling == 1)[0]
             indices = self.i[options]
             indices = indices - indices.min() + 1

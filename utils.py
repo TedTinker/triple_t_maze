@@ -286,7 +286,7 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
 
     plt.axhline(y = 0, color = 'gray', linestyle = '--')
     if(not all(i == 0 for i in icy)):
-        plt.plot(icx, icy, color = "green", label = "Curiosity")
+        plt.plot(icx, icy, color = "green", label = "ln Curiosity")
     if(not all(i == 0 for i in iey)):
         plt.plot(iex, iey, color = "blue",  label = "Entropy")
     plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
@@ -308,7 +308,7 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
 
     plt.axhline(y = 0, color = 'gray', linestyle = '--')
     if(not all(i == 0 for i in icy)):
-        plt.plot(icx, icy, color = "green", label = "Curiosity")
+        plt.plot(icx, icy, color = "green", label = "ln Curiosity")
     if(not all(i == 0 for i in iey)):
         plt.plot(iex, iey, color = "blue",  label = "Entropy")
     plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
@@ -369,9 +369,9 @@ def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max =
     # Plot trans_loss
     plt.xlabel("Epochs")
     plt.plot(trans_x, trans_y, color = "green", label = "Trans")
-    plt.ylabel("Trans losses")
+    plt.ylabel("ln Trans losses")
     plt.legend(loc = 'upper left')
-    plt.title("Transitioner loss")
+    plt.title("ln Transitioner loss")
     plt.ylim(trans_min_max)
     save_plot("loss_trans" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
@@ -389,7 +389,7 @@ def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max =
     divide_arenas(trans_x)
     ax2.plot(critic1_x, critic1_y, color='blue', linestyle = "--", label = "Critic")
     ax2.plot(critic2_x, critic2_y, color='blue', linestyle = ":",  label = "Critic")
-    ax2.set_ylabel("Critic losses")
+    ax2.set_ylabel("ln Critic losses")
     ax2.legend(loc = 'lower left')
     ax2.set_ylim(critic_min_max)
     

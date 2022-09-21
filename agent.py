@@ -8,7 +8,7 @@ import torch.optim as optim
 
 import numpy as np
 import matplotlib.pyplot as plt
-from math import degrees
+from math import log
 from random import choice
 
 from utils import args, plot_curiosity, device, new_text
@@ -211,13 +211,16 @@ class Agent:
             alpha_loss = None
             actor_loss = None
         
-        if(trans_loss != None): trans_loss = trans_loss.item()
+        if(trans_loss != None): trans_loss = log(trans_loss.item())
         if(alpha_loss != None): alpha_loss = alpha_loss.item()
         if(actor_loss != None): actor_loss = actor_loss.item()
-        if(critic1_loss != None): critic1_loss = critic1_loss.item()
-        if(critic2_loss != None): critic2_loss = critic2_loss.item()
-        
+        if(critic1_loss != None): critic1_loss = log(critic1_loss.item())
+        if(critic2_loss != None): critic2_loss = log(critic2_loss.item())
         losses = np.array([[trans_loss, alpha_loss, actor_loss, critic1_loss, critic2_loss]])
+        
+        try:    intrinsic_curiosity = log(intrinsic_curiosity)
+        except: pass
+        
         return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy)
                      
     def soft_update(self, local_model, target_model, tau):
