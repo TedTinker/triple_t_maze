@@ -14,17 +14,17 @@ do
     then
         :
     else
-        singularity exec t_maze.sif python triple_t_maze/bash/slurmcraft.py --name $job
-        jid=$(sbatch --array=1-${agents} triple_t_maze/bash/$job.slurm)
+        singularity exec t_maze.sif python triple_t_maze/bash/deigo/slurmcraft.py --name $job
+        jid=$(sbatch --array=1-${agents} triple_t_maze/bash/deigo/$job.slurm)
         echo $jid
         jid=(${jid// / })
         jid=${jid[3]}     
-        jid=$(sbatch --dependency afterok:$jid --export explore_type=$job triple_t_maze/bash/after.slurm)
+        jid=$(sbatch --dependency afterok:$jid --export explore_type=$job triple_t_maze/bash/deigo/after.slurm)
         echo $jid
         jid=(${jid// / })
         jid=${jid[3]}     
         jid_list+=($jid)
-        rm triple_t_maze/bash/$job.slurm
+        rm triple_t_maze/bash/deigo/$job.slurm
     fi
 done
 
@@ -41,5 +41,5 @@ do
 done
 order+=")"
 
-jid=$(sbatch --dependency afterok:$(echo ${jid_list[*]} | tr ' ' :) --export explore_type=$order triple_t_maze/bash/after.slurm)
+jid=$(sbatch --dependency afterok:$(echo ${jid_list[*]} | tr ' ' :) --export explore_type=$order triple_t_maze/bash/deigo/after.slurm)
 echo $jid

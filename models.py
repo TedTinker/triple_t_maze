@@ -142,7 +142,8 @@ class Transitioner(nn.Module):
         return(next_image, next_speed)
 
     def DKL(self, images, speeds, action, next_images, next_speeds, masks):
-        with torch.no_grad(): pred_next_images, pred_next_speeds = self(images.detach(), speeds.detach(), action.detach())
+        with torch.no_grad(): 
+            pred_next_images, pred_next_speeds = self(images.detach(), speeds.detach(), action.detach())
         predictions = torch.cat([pred_next_images.flatten(2), pred_next_speeds], dim = -1)
         targets = torch.cat([next_images.flatten(2), next_speeds], dim = -1)
         divergence = F.kl_div(

@@ -1,0 +1,58 @@
+default : --eta 0 --alpha 0 --target_entropy 0
+entropy : --eta 0
+curious : --alpha 0 --target_entropy 0
+both    : --target_entropy -1
+
+default_uniform : --eta 0 --alpha 0 --target_entropy 0
+entropy_uniform : --eta 0
+curious_uniform : --alpha 0 --target_entropy 0
+
+default_index_1 : --eta 0 --alpha 0 --target_entropy 0 --selection index
+entropy_index_1 : --eta 0 --selection index
+curious_index_1 : --alpha 0 --target_entropy 0 --selection index
+
+default_index_2 : --eta 0 --alpha 0 --target_entropy 0 --selection index --power 2
+entropy_index_2 : --eta 0 --selection index --power 2
+curious_index_2 : --alpha 0 --target_entropy 0 --selection index --power 2
+
+default_index_4 : --eta 0 --alpha 0 --target_entropy 0 --selection index --power 4
+entropy_index_4 : --eta 0 --selection index --power 4
+curious_index_4 : --alpha 0 --target_entropy 0 --selection index --power 4
+
+default_cus : --eta 0 --alpha 0 --target_entropy 0 --selection curiosity
+entropy_cus : --eta 0 --selection curiosity
+curious_cus : --alpha 0 --target_entropy 0 --selection curiosity
+
+entropy_t_m4 : --eta 0 --target_entropy -4
+entropy_t_m2 : --eta 0 --target_entropy -2
+entropy_t_m1 : --eta 0 --target_entropy -1
+entropy_t_0  : --eta 0 --target_entropy 0
+entropy_t_1  : --eta 0 --target_entropy 1
+entropy_t_2  : --eta 0 --target_entropy 2
+entropy_t_4  : --eta 0 --target_entropy 4
+
+entropy_a_t_t_m4 : --eta 0 --alpha .1 --target_entropy -4
+entropy_a_t_t_m2 : --eta 0 --alpha .1 --target_entropy -2
+entropy_a_t_t_0  : --eta 0 --alpha .1 --target_entropy 0
+entropy_a_t_t_2  : --eta 0 --alpha .1 --target_entropy 2
+entropy_a_t_t_4  : --eta 0 --alpha .1 --target_entropy 4
+
+entropy_a_q_t_m4 : --eta 0 --alpha .25 --target_entropy -4
+entropy_a_q_t_m2 : --eta 0 --alpha .25 --target_entropy -2
+entropy_a_q_t_0  : --eta 0 --alpha .25 --target_entropy 0
+entropy_a_q_t_2  : --eta 0 --alpha .25 --target_entropy 2
+entropy_a_q_t_4  : --eta 0 --alpha .25 --target_entropy 4
+
+entropy_a_h_t_m4 : --eta 0 --alpha .5 --target_entropy -4
+entropy_a_h_t_m2 : --eta 0 --alpha .5 --target_entropy -2
+entropy_a_h_t_0  : --eta 0 --alpha .5 --target_entropy 0
+entropy_a_h_t_2  : --eta 0 --alpha .5 --target_entropy 2
+entropy_a_h_t_4  : --eta 0 --alpha .5 --target_entropy 4
+
+curious_1 :  --alpha 0 --target_entropy 0 --eta 1
+curious_3 :  --alpha 0 --target_entropy 0 --eta 3
+curious_5 :  --alpha 0 --target_entropy 0 --eta 5
+curious_10 : --alpha 0 --target_entropy 0 --eta 10
+curious_15 : --alpha 0 --target_entropy 0 --eta 15
+curious_20 : --alpha 0 --target_entropy 0 --eta 20
+curious_30 : --alpha 0 --target_entropy 0 --eta 30

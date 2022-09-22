@@ -19,6 +19,10 @@ default_index_4 : --eta 0 --alpha 0 --target_entropy 0 --selection index --power
 entropy_index_4 : --eta 0 --selection index --power 4
 curious_index_4 : --alpha 0 --target_entropy 0 --selection index --power 4
 
+default_cus : --eta 0 --alpha 0 --target_entropy 0 --selection curiosity
+entropy_cus : --eta 0 --selection curiosity
+curious_cus : --alpha 0 --target_entropy 0 --selection curiosity
+
 entropy_t_m4 : --eta 0 --target_entropy -4
 entropy_t_m2 : --eta 0 --target_entropy -2
 entropy_t_m1 : --eta 0 --target_entropy -1

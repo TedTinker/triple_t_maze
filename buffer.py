@@ -102,8 +102,9 @@ class RecurrentReplayBuffer:
             # reset pointers
         
             self.index += 1
-            self.episode_ptr = (self.episode_ptr + 1) % self.capacity
             self.time_ptr = 0
+            if(self.args.replacement == "index"):
+                self.episode_ptr = (self.episode_ptr + 1) % self.capacity
         
             # update trackers
         
@@ -117,24 +118,36 @@ class RecurrentReplayBuffer:
         
             self.time_ptr += 1
     
-    def sample(self, batch_size):
+    def sample(self, batch_size, agent):
       
-        if(self.num_episodes < batch_size): return self.sample(self.num_episodes)
+        if(self.num_episodes < batch_size): return self.sample(self.num_episodes, agent)
       
         # sample episode indices
-      
+              
+        options = np.where(self.ready_for_sampling == 1)[0]
         if(self.args.selection == "uniform"):
             self.args.power = 0
             self.args.selection = "index"
         
         if(self.args.selection == "index"):
-            options = np.where(self.ready_for_sampling == 1)[0]
             indices = self.i[options]
             indices = indices - indices.min() + 1
             indices = np.power(indices, self.args.power)
             weights = as_probas(indices)
-            choices = np.random.choice(options, p=weights, size=batch_size, replace=False)
-      
+            
+        if(self.args.selection == "curiosity"):
+            o = torch.from_numpy(self.o).to(device)
+            s = torch.from_numpy(self.s).to(device)
+            a = torch.from_numpy(self.a).to(device)
+            m = torch.from_numpy(self.m).to(device)
+            curiosity = agent.transitioner.DKL(
+                o[:,:-1], s[:,:-1], a,
+                o[:,1:], s[:,1:], m).cpu().numpy().squeeze(-1)
+            curiosity = np.sum(curiosity, 1)
+            curiosity = curiosity[curiosity != 0]
+            weights = as_probas(curiosity)
+            
+        choices = np.random.choice(options, p=weights, size=batch_size, replace=False)
         ep_lens_of_choices = self.ep_len[choices]
       
         if self.segment_len is None:

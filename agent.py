@@ -78,8 +78,7 @@ class Agent:
                 
         self.steps += 1
 
-        try:    images, speeds, actions, rewards, dones, masks = self.memory.sample(batch_size)
-        except: return(np.array([[None]*5]), None, None, None)
+        images, speeds, actions, rewards, dones, masks = self.memory.sample(batch_size, self)
         
         image_masks = torch.tile(masks.unsqueeze(-1).unsqueeze(-1), (self.args.image_size, self.args.image_size, 4))
         
