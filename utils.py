@@ -34,6 +34,7 @@ parser.add_argument('--trans_lr',           type=float, default = .001)
 parser.add_argument('--actor_lr',           type=float, default = .001) 
 parser.add_argument('--critic_lr',          type=float, default = .001) 
 parser.add_argument('--alpha_lr',           type=float, default = .005) 
+parser.add_argument('--eta_lr',             type=float, default = .005) 
 
 # Memory buffer
 parser.add_argument('--capacity',           type=int,   default = 500)
@@ -50,7 +51,7 @@ parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
 parser.add_argument("--alpha",              type=float, default = None) # Soft-Actor-Critic entropy aim
 parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
-parser.add_argument("--eta",                type=float, default = 5)    # Scale curiosity
+parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = 1e-2) # For soft-updating target critics
 

@@ -25,7 +25,7 @@ def episode(env, agent, push = True, delay = False):
             if(device == "cuda"): torch.cuda.synchronize(device=device)
     env.body.to_push.finalize_rewards()
     rewards = deepcopy(env.body.to_push.rew)
-    if(push): env.body.to_push.push(agent.memory)
+    if(push): env.body.to_push.push(agent.memory, agent)
     else:     env.body.to_push.empty()
     env.close()
     return(win, which, rewards, positions)

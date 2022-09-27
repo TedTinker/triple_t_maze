@@ -27,7 +27,7 @@ else:
     pos_count = 10
 
     manager = enlighten.Manager()
-    E = manager.counter(total = len(load_names), desc = "Agents:", unit = "ticks", color = "blue")
+    E = manager.counter(total = len(load_names), desc = "Positions:", unit = "ticks", color = "blue")
 
     for load_name in load_names:
         positions_lists = []      

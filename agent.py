@@ -31,6 +31,10 @@ class Agent:
         self.alpha_optimizer = optim.Adam(params=[self.log_alpha], lr=self.args.alpha_lr) 
         self._action_prior = action_prior
         
+        self.eta = 1
+        self.log_eta = torch.tensor([0.0], requires_grad=True)
+        self.eta_optimizer = optim.Adam(params=[self.log_eta], lr=self.args.eta_lr) 
+        
         self.transitioner = Transitioner()
         self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr)     
                            
@@ -78,7 +82,7 @@ class Agent:
                 
         self.steps += 1
 
-        images, speeds, actions, rewards, dones, masks = self.memory.sample(batch_size, self)
+        images, speeds, actions, rewards, dones, masks = self.memory.sample(batch_size)
         
         image_masks = torch.tile(masks.unsqueeze(-1).unsqueeze(-1), (self.args.image_size, self.args.image_size, 4))
         
@@ -100,10 +104,16 @@ class Agent:
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
             
-        curiosity = self.args.eta * self.transitioner.DKL(
-            images[:,:-1], speeds[:,:-1], actions,
-            images[:,1:], speeds[:,1:], masks)
-        self.args.eta = self.args.eta * self.args.eta_rate
+        if(self.args.eta == None):
+            curiosity = self.eta * self.transitioner.DKL(
+                images[:,:-1], speeds[:,:-1], actions,
+                images[:,1:], speeds[:,1:], masks)
+            self.eta = self.eta * self.args.eta_rate
+        else:
+            curiosity = self.args.eta * self.transitioner.DKL(
+                images[:,:-1], speeds[:,:-1], actions,
+                images[:,1:], speeds[:,1:], masks)
+            self.args.eta = self.args.eta * self.args.eta_rate
         
         plot = True if num == 0 and plot else False
         if(plot):
@@ -174,6 +184,17 @@ class Agent:
             alpha_loss.backward()
             self.alpha_optimizer.step()
             self.alpha = torch.exp(self.log_alpha) 
+            
+        # Train eta
+        if(self.args.eta == None):
+            """
+            eta_loss = "I don't know yet"
+            self.eta_optimizer.zero_grad()
+            eta_loss.backward()
+            self.eta_optimizer.step()
+            self.eta = torch.exp(self.log_eta) 
+            """
+            self.eta = self.eta
             
     
         # Train actor

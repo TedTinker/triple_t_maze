@@ -61,10 +61,12 @@ class RecurrentReplayBuffer:
         self.i = np.zeros((self.args.capacity,), dtype = int)
         self.ep_len = np.zeros((self.args.capacity,), dtype='float32')
         self.ready_for_sampling = np.zeros((self.args.capacity,), dtype='int')
+        
+        self.curiosity = np.zeros(self.args.capacity)
       
 
 
-    def push(self, o, s, a, r, no, ns, d, cutoff):
+    def push(self, o, s, a, r, no, ns, d, cutoff, agent):
             
         # zero-out current slot at the beginning of an episode
       
@@ -98,29 +100,52 @@ class RecurrentReplayBuffer:
             self.o[self.episode_ptr, self.time_ptr+1] = no
             self.s[self.episode_ptr, self.time_ptr+1] = ns
             self.ready_for_sampling[self.episode_ptr] = 1
+            
+            # reset curiosity weights if needed
+            if(self.args.selection == "curiosity" or self.args.replacement == "curiosity"):
+                o = torch.from_numpy(self.o).to(device)
+                s = torch.from_numpy(self.s).to(device)
+                a = torch.from_numpy(self.a).to(device)
+                m = torch.from_numpy(self.m).to(device)
+                curiosity = agent.transitioner.DKL(
+                    o[:,:-1], s[:,:-1], a,
+                    o[:,1:], s[:,1:], m).cpu().numpy().squeeze(-1)
+                curiosity = np.sum(curiosity, 1)
+                curiosity = curiosity[curiosity != 0]
+                self.curiosity = curiosity
         
             # reset pointers
         
             self.index += 1
             self.time_ptr = 0
+            
             if(self.args.replacement == "index"):
-                self.episode_ptr = (self.episode_ptr + 1) % self.capacity
-        
+                self.episode_ptr = (self.episode_ptr+1) % self.capacity
+                
+            if(self.args.replacement == "curiosity"):
+                if(self.num_episodes+1 < self.capacity):
+                    self.episode_ptr += 1
+                else:
+                    self.episode_ptr = np.argmin(self.curiosity)
+                    
             # update trackers
         
             self.starting_new_episode = True
             if self.num_episodes < self.capacity:
                 self.num_episodes += 1
-      
+
         else:
       
             # update pointers
         
             self.time_ptr += 1
+            
+
+        
     
-    def sample(self, batch_size, agent):
+    def sample(self, batch_size):
       
-        if(self.num_episodes < batch_size): return self.sample(self.num_episodes, agent)
+        if(self.num_episodes < batch_size): return self.sample(self.num_episodes)
       
         # sample episode indices
               
@@ -136,16 +161,7 @@ class RecurrentReplayBuffer:
             weights = as_probas(indices)
             
         if(self.args.selection == "curiosity"):
-            o = torch.from_numpy(self.o).to(device)
-            s = torch.from_numpy(self.s).to(device)
-            a = torch.from_numpy(self.a).to(device)
-            m = torch.from_numpy(self.m).to(device)
-            curiosity = agent.transitioner.DKL(
-                o[:,:-1], s[:,:-1], a,
-                o[:,1:], s[:,1:], m).cpu().numpy().squeeze(-1)
-            curiosity = np.sum(curiosity, 1)
-            curiosity = curiosity[curiosity != 0]
-            weights = as_probas(curiosity)
+            weights = as_probas(np.power(self.curiosity, self.args.power))
             
         choices = np.random.choice(options, p=weights, size=batch_size, replace=False)
         ep_lens_of_choices = self.ep_len[choices]

@@ -33,11 +33,11 @@ class to_push:
                 self.rew[i] = self.rew[i]* (self.GAMMA**i)
         self.rew = add_discount(self.rew, .9)
         
-    def push(self, memory):
+    def push(self, memory, agent):
         for _ in range(len(self.rew)):
             done = self.done.pop(0)
             memory.push(self.obs.pop(0), self.spe.pop(0), self.act.pop(0), \
-                self.rew.pop(0), self.next_obs.pop(0), self.next_spe.pop(0), done, done)
+                self.rew.pop(0), self.next_obs.pop(0), self.next_spe.pop(0), done, done, agent)
             
     def empty(self):
         self.obs = []
