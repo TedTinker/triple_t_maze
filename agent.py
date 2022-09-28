@@ -35,18 +35,18 @@ class Agent:
         self.log_eta = torch.tensor([0.0], requires_grad=True)
         self.eta_optimizer = optim.Adam(params=[self.log_eta], lr=self.args.eta_lr) 
         
-        self.transitioner = Transitioner()
+        self.transitioner = Transitioner(self.args)
         self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr)     
                            
-        self.actor = Actor()
+        self.actor = Actor(self.args)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr)     
         
-        self.critic1 = Critic()
+        self.critic1 = Critic(self.args)
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=self.args.critic_lr, weight_decay=0)
         self.critic1_target = Critic()
         self.critic1_target.load_state_dict(self.critic1.state_dict())
 
-        self.critic2 = Critic()
+        self.critic2 = Critic(self.args)
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=self.args.critic_lr, weight_decay=0) 
         self.critic2_target = Critic()
         self.critic2_target.load_state_dict(self.critic2.state_dict())

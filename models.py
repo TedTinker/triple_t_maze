@@ -5,11 +5,6 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from torchinfo import summary as torch_summary
 
-import numpy as np
-from math import degrees
-from random import choice
-import matplotlib.pyplot as plt
-
 from utils import args, device, ConstrainedConv2d, delete_these, \
     init_weights, shape_out, flatten_shape, new_text
 
@@ -17,8 +12,10 @@ from utils import args, device, ConstrainedConv2d, delete_these, \
 
 class Transitioner(nn.Module):
 
-    def __init__(self):
+    def __init__(self, args):
         super(Transitioner, self).__init__()
+
+        self.args = args
 
         self.image_in = nn.Sequential(
             ConstrainedConv2d(
@@ -34,33 +31,33 @@ class Transitioner(nn.Module):
                 padding = (1,1)))
 
         self.speed_in = nn.Sequential(
-            nn.Linear(1, args.hidden_size),
+            nn.Linear(1, self.args.hidden_size),
             nn.LeakyReLU())
 
-        shape = (1, 4, args.image_size, args.image_size)
+        shape = (1, 4, self.args.image_size, self.args.image_size)
         next_shape = shape_out(self.image_in, shape)
         next_shape = flatten_shape(next_shape, 1)
 
         self.lstm = nn.LSTM(
-            input_size = next_shape[-1] + args.hidden_size,
-            hidden_size = args.lstm_size,
+            input_size = next_shape[-1] + self.args.hidden_size,
+            hidden_size = self.args.lstm_size,
             batch_first = True)
 
         self.encode = nn.Sequential(
             nn.LeakyReLU(),
-            nn.Linear(args.lstm_size, args.hidden_size),
+            nn.Linear(self.args.lstm_size, self.args.hidden_size),
             nn.LeakyReLU(),
-            nn.Linear(args.hidden_size, args.encode_size),
+            nn.Linear(self.args.hidden_size, self.args.encode_size),
             nn.LeakyReLU())
 
         self.action_in = nn.Sequential(
-            nn.Linear(2, args.hidden_size),
+            nn.Linear(2, self.args.hidden_size),
             nn.LeakyReLU())
 
         self.next_image_1 = nn.Sequential(
-            nn.Linear(args.encode_size + args.hidden_size, args.hidden_size),
+            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size),
             nn.LeakyReLU(),
-            nn.Linear(args.hidden_size, 32 * args.image_size//4 * args.image_size//4),
+            nn.Linear(self.args.hidden_size, 32 * self.args.image_size//4 * self.args.image_size//4),
             nn.LeakyReLU()) 
 
         self.next_image_2 = nn.Sequential(
@@ -91,7 +88,7 @@ class Transitioner(nn.Module):
             nn.Tanh()) 
 
         self.next_speed = nn.Sequential(
-            nn.Linear(args.encode_size + args.hidden_size, 1)) 
+            nn.Linear(self.args.encode_size + self.args.hidden_size, 1)) 
 
         self.image_in.apply(init_weights)
         self.speed_in.apply(init_weights)
@@ -112,7 +109,7 @@ class Transitioner(nn.Module):
         if(sequence): image = image.reshape(image.shape[0]*image.shape[1], image.shape[2], image.shape[3], image.shape[4])
         image = self.image_in(image).flatten(1)
         if(sequence): image = image.reshape(batch_size, image.shape[0]//batch_size, image.shape[1])
-        speed = (speed - args.min_speed) / (args.max_speed - args.min_speed)
+        speed = (speed - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
         speed = (speed*2)-1
         speed = self.speed_in(speed.float())
         x = torch.cat([image, speed], -1)
@@ -132,9 +129,9 @@ class Transitioner(nn.Module):
         x = torch.cat((encoding, action), dim=-1)
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
-        next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, args.image_size//4, args.image_size//4)
+        next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
         next_image = self.next_image_2(next_image)   
-        next_image = next_image.reshape(batch_size, next_image.shape[0]//batch_size, 4, args.image_size, args.image_size)
+        next_image = next_image.reshape(batch_size, next_image.shape[0]//batch_size, 4, self.args.image_size, self.args.image_size)
         next_image = next_image.permute(0, 1, 3, 4, 2)
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
@@ -159,19 +156,21 @@ class Actor(nn.Module):
 
     def __init__(
             self, 
+            args,
             log_std_min=-20, 
             log_std_max=2):
 
         super(Actor, self).__init__()
+        self.args = args
         self.log_std_min = log_std_min
         self.log_std_max = log_std_max
         self.lin = nn.Sequential(
-            nn.Linear(args.encode_size, args.hidden_size*2),
+            nn.Linear(self.args.encode_size, self.args.hidden_size*2),
             nn.LeakyReLU(),
-            nn.Linear(args.hidden_size*2, args.hidden_size*2),
+            nn.Linear(self.args.hidden_size*2, self.args.hidden_size*2),
             nn.LeakyReLU())
-        self.mu = nn.Linear(args.hidden_size*2, 2)
-        self.log_std_linear = nn.Linear(args.hidden_size*2, 2)
+        self.mu = nn.Linear(self.args.hidden_size*2, 2)
+        self.log_std_linear = nn.Linear(self.args.hidden_size*2, 2)
 
         self.lin.apply(init_weights)
         self.mu.apply(init_weights)
@@ -208,15 +207,18 @@ class Actor(nn.Module):
 
 class Critic(nn.Module):
 
-    def __init__(self):
+    def __init__(self, args):
 
         super(Critic, self).__init__()
+        
+        self.args = args
+        
         self.lin = nn.Sequential(
-            nn.Linear(args.encode_size+2, args.hidden_size*2),
+            nn.Linear(self.args.encode_size+2, self.args.hidden_size*2),
             nn.LeakyReLU(),
-            nn.Linear(args.hidden_size*2, args.hidden_size*2),
+            nn.Linear(self.args.hidden_size*2, self.args.hidden_size*2),
             nn.LeakyReLU(),
-            nn.Linear(args.hidden_size*2, 2))
+            nn.Linear(self.args.hidden_size*2, 2))
 
         self.lin.apply(init_weights)
         self.to(device)
@@ -231,9 +233,9 @@ class Critic(nn.Module):
 
 if __name__ == "__main__":
 
-    transitioner = Transitioner()
-    actor = Actor()
-    critic = Critic()
+    transitioner = Transitioner(args)
+    actor = Actor(args)
+    critic = Critic(args)
 
     print("\n\n")
     print(transitioner)

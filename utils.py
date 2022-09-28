@@ -26,6 +26,7 @@ parser.add_argument('--min_speed',          type=float, default = 40)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
+parser.add_argument('--lookahead',          type=int,   default = 1)
 parser.add_argument('--batch_size',         type=int,   default = 128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
