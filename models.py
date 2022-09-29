@@ -50,8 +50,8 @@ class Transitioner(nn.Module):
             nn.Linear(self.args.hidden_size, self.args.encode_size),
             nn.LeakyReLU())
 
-        self.action_in = nn.Sequential(
-            nn.Linear(2, self.args.hidden_size),
+        self.actions_in = nn.Sequential(
+            nn.Linear(2*self.args.lookahead, self.args.hidden_size),
             nn.LeakyReLU())
 
         self.next_image_1 = nn.Sequential(
@@ -94,7 +94,7 @@ class Transitioner(nn.Module):
         self.speed_in.apply(init_weights)
         self.lstm.apply(init_weights)
         self.encode.apply(init_weights)
-        self.action_in.apply(init_weights)
+        self.actions_in.apply(init_weights)
         self.next_image_1.apply(init_weights)
         self.next_image_2.apply(init_weights)
         self.next_speed.apply(init_weights)
@@ -122,11 +122,11 @@ class Transitioner(nn.Module):
         delete_these(False, image, speed, x)
         return(encoding, hidden) 
 
-    def forward(self, image, speed, action):
-        action = action.to(device)
+    def forward(self, image, speed, actions):
+        actions = actions.to(device)
         encoding, _ = self.just_encode(image, speed)
-        action = self.action_in(action)
-        x = torch.cat((encoding, action), dim=-1)
+        actions = self.actions_in(actions)
+        x = torch.cat((encoding, actions), dim=-1)
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
         next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
@@ -135,12 +135,14 @@ class Transitioner(nn.Module):
         next_image = next_image.permute(0, 1, 3, 4, 2)
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
-        delete_these(False, x, action)
+        delete_these(False, x, actions)
         return(next_image, next_speed)
 
-    def DKL(self, images, speeds, action, next_images, next_speeds, masks):
+    def DKL(self, images, speeds, actions, masks):
+        next_images = images[:, self.args.lookahead:] ; images = images[:, :-self.args.lookahead]
+        next_speeds = speeds[:, self.args.lookahead:] ; speeds = speeds[:, :-self.args.lookahead]
         with torch.no_grad(): 
-            pred_next_images, pred_next_speeds = self(images.detach(), speeds.detach(), action.detach())
+            pred_next_images, pred_next_speeds = self(images.detach(), speeds.detach(), actions.detach())
         predictions = torch.cat([pred_next_images.flatten(2), pred_next_speeds], dim = -1)
         targets = torch.cat([next_images.flatten(2), next_speeds], dim = -1)
         divergence = F.kl_div(

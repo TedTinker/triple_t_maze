@@ -92,7 +92,7 @@ class Trainer():
             episode(env, self.agent, push, delay)
         return(int(win), which, rewards, positions)
 
-    def epoch(self, plot = False, append = True):
+    def epoch(self, plot_predictions = False, append = True):
         for _ in range(self.args.episodes_per_epoch):
             win, which, rewards, _ = self.one_episode()
             if(append):
@@ -102,9 +102,9 @@ class Trainer():
                 rewards = sum(rewards)
                 if(rewards > 0): self.rewards.append(rewards); self.punishments.append(0)
                 else:            self.punishments.append(rewards); self.rewards.append(0)
-                    
+        
         losses, extrinsic, intrinsic_curiosity, intrinsic_entropy = \
-            self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot = plot)
+            self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot_predictions = plot_predictions)
         if(append):
             self.ext.append(extrinsic)
             self.int_cur.append(intrinsic_curiosity)
@@ -118,13 +118,13 @@ class Trainer():
         E = manager.counter(total = 3*args.epochs_per_arena, desc = "Epochs:", unit = "ticks", color = "blue")
         if(self.args.fill_memory):
             for e in range(self.args.batch_size):
-                self.epoch(plot = False, append = False)
-        prob = range(len(self.arena_names) * self.args.epochs_per_arena)
+                self.epoch(plot_predictions = False, append = False)
+        epochs = range(len(self.arena_names) * self.args.epochs_per_arena)
         
-        for e in prob:
+        for e in epochs:
             E.update()
             self.e += 1
-            self.epoch(plot = self.e % self.args.show_and_save == 0)
+            self.epoch(plot_predictions = self.e % self.args.show_and_save == 0)
             if(self.e % self.args.show_and_save == 0): 
                 save_agent(self.agent, suf = self.e)
                 
@@ -135,7 +135,7 @@ class Trainer():
                 self.env = Env(self.arena_names[self.current_arena], self.args, GUI = False)
                 if(self.args.fill_memory):
                     for e_ in range(self.args.batch_size):
-                        self.epoch(plot = False, append = False)
+                        self.epoch(plot_predictions = False, append = False)
 
             if(self.e >= len(self.arena_names) * self.args.epochs_per_arena):
                 save_agent(self.agent, suf = self.e)

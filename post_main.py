@@ -269,6 +269,37 @@ def make_end_pics(order):
             new_image.paste(image, (0, i*image.size[1]))
         new_image.save("saves/all_{}_plots.png".format(training_name))
         os.rmdir(new_folder)
+    
+    # Predictions
+    for training_name in order:
+        os.mkdir("saves/{}_predictions".format(training_name))
+        
+        folders = []
+        for folder in os.listdir("saves"):
+            if("_".join(folder.split("_")[:-1]) == training_name and not folder.split('_')[-1] in ("positions", "predictions")):
+                folders.append(folder)
+        
+        for folder in folders:
+            images = []
+            files = os.listdir("saves/{}/plots/predictions".format(folder)) ; files.sort()
+            for f in files:
+                images.append(Image.open("saves/{}/plots/predictions/{}".format(folder, f)))
+            new_image = Image.new("RGB", (images[0].size[0], len(files)*images[0].size[1]))
+            for i, image in enumerate(images):
+                new_image.paste(image, (0, i*image.size[1]))
+            new_image.save("saves/{}_predictions/predictions_{}.png".format(training_name, folder.split("_")[-1]))
+            shutil.rmtree("saves/{}/plots/predictions".format(folder))
+            
+        images = []
+        files = os.listdir("saves/{}_predictions".format(training_name)) ; files.sort()
+        for f in files:
+            images.append(Image.open("saves/{}_predictions/{}".format(training_name, f)))
+            
+        new_image = Image.new("RGB", (len(images)*(10+images[0].size[0]), images[0].size[1]))
+        for i, image in enumerate(images):
+            new_image.paste(image, (i*(10+image.size[0]), 0))
+        new_image.save("saves/{}_predictions.png".format(training_name))
+        shutil.rmtree("saves/{}_predictions".format(training_name))
         
 def make_together_pic(order):
     real_order = [] 

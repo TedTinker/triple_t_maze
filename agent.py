@@ -7,11 +7,9 @@ from torch.distributions import MultivariateNormal
 import torch.optim as optim
 
 import numpy as np
-import matplotlib.pyplot as plt
 from math import log
-from random import choice
 
-from utils import args, plot_curiosity, device, new_text
+from utils import args, plot_curiosity, plot_some_predictions, new_text
 from buffer import RecurrentReplayBuffer
 from models import Transitioner, Actor, Critic
 
@@ -43,12 +41,12 @@ class Agent:
         
         self.critic1 = Critic(self.args)
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=self.args.critic_lr, weight_decay=0)
-        self.critic1_target = Critic()
+        self.critic1_target = Critic(self.args)
         self.critic1_target.load_state_dict(self.critic1.state_dict())
 
         self.critic2 = Critic(self.args)
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=self.args.critic_lr, weight_decay=0) 
-        self.critic2_target = Critic()
+        self.critic2_target = Critic(self.args)
         self.critic2_target.load_state_dict(self.critic2.state_dict())
         
         self.restart_memory()
@@ -61,11 +59,11 @@ class Agent:
         action = self.actor.get_action(encoded).detach()
         return action, hidden
     
-    def learn(self, batch_size, iterations, num = -1, plot = False):
+    def learn(self, batch_size, iterations, num = -1, plot_predictions = False):
         if(iterations != 1):
             losses = []; extrinsic = []; intrinsic_curiosity = []; intrinsic_entropy = []
             for i in range(iterations): 
-                l, e, ic, ie = self.learn(batch_size, 1, num = i, plot = plot)
+                l, e, ic, ie = self.learn(batch_size, 1, num = i, plot_predictions = plot_predictions)
                 losses.append(l); extrinsic.append(e)
                 intrinsic_curiosity.append(ic); intrinsic_entropy.append(ie)
             losses = np.concatenate(losses)
@@ -83,9 +81,7 @@ class Agent:
         self.steps += 1
 
         images, speeds, actions, rewards, dones, masks = self.memory.sample(batch_size)
-        
         image_masks = torch.tile(masks.unsqueeze(-1).unsqueeze(-1), (self.args.image_size, self.args.image_size, 4))
-        
         speeds = (speeds - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
         speeds = (speeds*2)-1
                             
@@ -106,49 +102,17 @@ class Agent:
             
         if(self.args.eta == None):
             curiosity = self.eta * self.transitioner.DKL(
-                images[:,:-1], speeds[:,:-1], actions,
-                images[:,1:], speeds[:,1:], masks)
+                images, speeds, actions, masks)
             self.eta = self.eta * self.args.eta_rate
         else:
             curiosity = self.args.eta * self.transitioner.DKL(
-                images[:,:-1], speeds[:,:-1], actions,
-                images[:,1:], speeds[:,1:], masks)
+                images, speeds, actions, masks)
             self.args.eta = self.args.eta * self.args.eta_rate
         
-        plot = True if num == 0 and plot else False
-        if(plot):
-            """
-            for _ in range(3):
-                try:
-                    batch_num = choice([i for i in range(self.args.batch_size)])
-                    step_num =  choice([i for i in range(self.args.max_steps) if masks[batch_num, i] == 1])
-                    image_plot = (images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
-                    pred_next_image_plot = (pred_next_images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
-                    next_image_plot = (images[batch_num,step_num+1,:,:,:-1].cpu().detach() + 1) / 2
-                    yaw = actions[batch_num,step_num,0].item() * self.args.max_yaw_change
-                    yaw = round(degrees(yaw))
-                    spe = self.args.min_speed + ((actions[batch_num,step_num,1].item() + 1)/2) * \
-                        (self.args.max_speed - self.args.min_speed)
-                    spe = round(spe)
-                    fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
-                    ax1.title.set_text("Before")
-                    ax1.imshow(image_plot)
-                    ax1.axis('off')
-                    ax2.title.set_text("Prediction")
-                    ax2.imshow(pred_next_image_plot)
-                    ax2.axis('off')
-                    ax3.title.set_text("After")
-                    ax3.imshow(next_image_plot)
-                    ax3.axis('off')
-                    fig.suptitle("Step {}: Action: {} degrees, {} speed".format(step_num, yaw, spe))
-                    fig.tight_layout()
-                    fig.subplots_adjust(top=1.2)
-                    plt.show()
-                    plt.close()
-                except:
-                    print("Something went weird trying to plot transitions.")
-            """
-            plot_curiosity(rewards.detach(), curiosity.detach(), masks.detach())
+        plot_predictions = True if num in (0, -1) and plot_predictions else False
+        if(plot_predictions):
+            plot_some_predictions(self.args, images, pred_next_images, actions, masks, self.steps)
+            #plot_curiosity(rewards.detach(), curiosity.detach(), masks.detach())
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()).item()

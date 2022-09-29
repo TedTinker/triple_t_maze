@@ -54,11 +54,12 @@ parser.add_argument("--alpha",              type=float, default = None) # Soft-A
 parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
-parser.add_argument("--tau",                type=float, default = 1e-2) # For soft-updating target critics
+parser.add_argument("--tau",                type=float, default = .01)  # For soft-updating target critics
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
 parser.add_argument('--show_and_save',      type=int,   default = 50)
+parser.add_argument('--predictions_to_plot',type=int,   default = 2)
 
 try:    args = parser.parse_args()
 except: args, _ = parser.parse_known_args()
@@ -106,6 +107,7 @@ if args.id != 0:
         os.mkdir(folder)
         os.mkdir(folder + "/agents")
         os.mkdir(folder + "/plots")
+        os.mkdir(folder + "/plots/predictions")
     except:
         already_done = True
 
@@ -226,7 +228,54 @@ def divide_arenas(epochs, here = plt):
     x = [e for e in epochs if e%args.epochs_per_arena == 0 and e != 0]
     for x_ in x:
         here.axvline(x=x_, color = (0,0,0,.2))
-    
+
+
+
+# Plot random predictions
+from PIL import Image
+from random import choice
+from math import degrees
+def plot_some_predictions(args, images, pred_next_images, actions, masks, steps):
+    pred_images = []
+    for ex in range(args.predictions_to_plot):
+        batch_num = choice([i for i in range(actions.shape[0])])
+        step_num =  choice([i for i in range(actions.shape[1] - args.lookahead - 1) if masks[batch_num, i] == 1])
+        image_plot = (images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
+        pred_next_image_plot = (pred_next_images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
+        next_image_plot = (images[batch_num,step_num+args.lookahead,:,:,:-1].cpu().detach() + 1) / 2
+        yaws = [] ; spes = []
+        for i in range(args.lookahead):
+            yaw = actions[batch_num,step_num+i,0].item() * args.max_yaw_change
+            yaw = round(degrees(yaw))
+            spe = args.min_speed + ((actions[batch_num,step_num+i,1].item() + 1)/2) * \
+                (args.max_speed - args.min_speed)
+            spe = round(spe)
+            yaws.append(yaw)
+            spes.append(spe)
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+        ax1.title.set_text("Before")
+        ax1.imshow(image_plot)
+        ax1.axis('off')
+        ax2.title.set_text("Prediction")
+        ax2.imshow(pred_next_image_plot)
+        ax2.axis('off')
+        ax3.title.set_text("After")
+        ax3.imshow(next_image_plot)
+        ax3.axis('off')
+        title = ""
+        for i in range(args.lookahead):
+            title += "Step {}: Action: {} degrees, {} speed".format(step_num+i, yaws[i], spes[i])
+            if(i < args.lookahead): title += "\n"
+        fig.suptitle(title)
+        fig.tight_layout()
+        fig.subplots_adjust(top=1.2)
+        plt.savefig(folder + "/plots/{}.png".format(ex), bbox_inches='tight',pad_inches = .3)
+        plt.close()
+        pred_images.append(Image.open(folder + "/plots/{}.png".format(ex)))
+    new_image = Image.new("RGB", (args.predictions_to_plot*pred_images[0].size[0], pred_images[0].size[1]))
+    for i, image in enumerate(pred_images):
+        new_image.paste(image, (i*image.size[0], 0))
+    new_image.save("{}/plots/predictions/{}.png".format(folder, str(steps).zfill(6)))
 
 # How to plot an episode's rewards.
 def plot_rewards(rewards):
