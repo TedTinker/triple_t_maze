@@ -70,11 +70,11 @@ class Agent:
             extrinsic = [e for e in extrinsic if e != None]
             intrinsic_curiosity = [e for e in intrinsic_curiosity if e != None]
             intrinsic_entropy = [e for e in intrinsic_entropy if e != None]
-            try: extrinsic = sum(extrinsic)/len(extrinsic)
+            try:    extrinsic = sum(extrinsic)/len(extrinsic)
             except: extrinsic = None
-            try: intrinsic_curiosity = sum(intrinsic_curiosity)/len(intrinsic_curiosity)
+            try:    intrinsic_curiosity = sum(intrinsic_curiosity)/len(intrinsic_curiosity)
             except: intrinsic_curiosity = None
-            try: intrinsic_entropy = sum(intrinsic_entropy)/len(intrinsic_entropy)
+            try:    intrinsic_entropy = sum(intrinsic_entropy)/len(intrinsic_entropy)
             except: intrinsic_entropy = None
             return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy)
                 
@@ -86,9 +86,14 @@ class Agent:
         speeds = (speeds*2)-1
                             
         # Train transitioner
-        pred_next_images, pred_next_speeds = self.transitioner(images[:,:-1].detach(), speeds[:,:-1].detach(), actions.detach())
-        trans_loss_image = F.mse_loss(pred_next_images*image_masks.detach(), images[:,1:]*image_masks.detach())
-        trans_loss_speed = F.mse_loss(pred_next_speeds*masks.detach(), speeds[:,1:]*masks.detach())
+        sequential_actions = actions 
+        for i in range(self.args.lookahead-1):
+            next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
+            sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
+        sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
+        pred_next_images, pred_next_speeds = self.transitioner(images[:,:-self.args.lookahead].detach(), speeds[:,:-self.args.lookahead].detach(), sequential_actions.detach())
+        trans_loss_image = F.mse_loss(pred_next_images*image_masks.detach()[:,self.args.lookahead-1:], images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:])
+        trans_loss_speed = F.mse_loss(pred_next_speeds*masks.detach()[:,self.args.lookahead-1:],       speeds[:,self.args.lookahead:]*masks.detach()[:,self.args.lookahead-1:])
         trans_loss = trans_loss_image + trans_loss_speed
         self.trans_optimizer.zero_grad()
         trans_loss.backward()
@@ -102,11 +107,11 @@ class Agent:
             
         if(self.args.eta == None):
             curiosity = self.eta * self.transitioner.DKL(
-                images, speeds, actions, masks)
+                images, speeds, sequential_actions, masks)
             self.eta = self.eta * self.args.eta_rate
         else:
             curiosity = self.args.eta * self.transitioner.DKL(
-                images, speeds, actions, masks)
+                images, speeds, sequential_actions, masks)
             self.args.eta = self.args.eta * self.args.eta_rate
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
@@ -115,7 +120,8 @@ class Agent:
             #plot_curiosity(rewards.detach(), curiosity.detach(), masks.detach())
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
-        intrinsic_curiosity = torch.mean(curiosity*masks.detach()).item()
+        intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()
+        curiosity = torch.cat([curiosity, torch.zeros([curiosity.shape[0], self.args.lookahead-1, 1])], dim = 1)
         rewards = torch.cat([rewards, curiosity], -1)
                 
         # Train critics

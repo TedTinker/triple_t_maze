@@ -17,7 +17,7 @@ class Transitioner(nn.Module):
 
         self.args = args
 
-        self.image_in = nn.Sequential(
+        self.image_in_1 = nn.Sequential(
             ConstrainedConv2d(
                 in_channels = 4, 
                 out_channels = 16,
@@ -29,17 +29,21 @@ class Transitioner(nn.Module):
                 kernel_size = (3,3), 
                 stride = (2,2),
                 padding = (1,1)))
+        
+        shape = (1, 4, self.args.image_size, self.args.image_size)
+        next_shape = shape_out(self.image_in_1, shape)
+        next_shape = flatten_shape(next_shape, 1)
+        
+        self.image_in_2 = nn.Sequential(
+            nn.Linear(next_shape[1], self.args.hidden_size),
+            nn.LeakyReLU())
 
         self.speed_in = nn.Sequential(
             nn.Linear(1, self.args.hidden_size),
             nn.LeakyReLU())
 
-        shape = (1, 4, self.args.image_size, self.args.image_size)
-        next_shape = shape_out(self.image_in, shape)
-        next_shape = flatten_shape(next_shape, 1)
-
         self.lstm = nn.LSTM(
-            input_size = next_shape[-1] + self.args.hidden_size,
+            input_size = 2*self.args.hidden_size,
             hidden_size = self.args.lstm_size,
             batch_first = True)
 
@@ -90,7 +94,8 @@ class Transitioner(nn.Module):
         self.next_speed = nn.Sequential(
             nn.Linear(self.args.encode_size + self.args.hidden_size, 1)) 
 
-        self.image_in.apply(init_weights)
+        self.image_in_1.apply(init_weights)
+        self.image_in_2.apply(init_weights)
         self.speed_in.apply(init_weights)
         self.lstm.apply(init_weights)
         self.encode.apply(init_weights)
@@ -107,7 +112,8 @@ class Transitioner(nn.Module):
         image = image.permute((0,1,-1,2,3) if sequence else (0, -1, 1, 2))
         batch_size = image.shape[0]
         if(sequence): image = image.reshape(image.shape[0]*image.shape[1], image.shape[2], image.shape[3], image.shape[4])
-        image = self.image_in(image).flatten(1)
+        image = self.image_in_1(image).flatten(1)
+        image = self.image_in_2(image)
         if(sequence): image = image.reshape(batch_size, image.shape[0]//batch_size, image.shape[1])
         speed = (speed - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
         speed = (speed*2)-1
@@ -146,8 +152,8 @@ class Transitioner(nn.Module):
         predictions = torch.cat([pred_next_images.flatten(2), pred_next_speeds], dim = -1)
         targets = torch.cat([next_images.flatten(2), next_speeds], dim = -1)
         divergence = F.kl_div(
-            F.log_softmax(predictions * masks, dim=-1), 
-            F.log_softmax(targets * masks, dim=-1), 
+            F.log_softmax(predictions * masks[:,self.args.lookahead-1:], dim=-1), 
+            F.log_softmax(targets * masks[:,self.args.lookahead-1:], dim=-1), 
             reduction="none", log_target=True)
         divergence = sum([divergence[:,:,i] for i in range(divergence.shape[-1])])
         return(divergence.unsqueeze(-1))
