@@ -35,19 +35,16 @@ def plot_positions(positions_lists, arena_name, folder, load_name):
     extent = [-.5, w-.5, -h+.5, .5]
     ax.imshow(arena_map, extent=extent, zorder = 1, origin='lower') 
     
-    _, this_arena_dict = arena_dict[arena_name + ".png"]
-    rewards = this_arena_dict.values() 
+    exits = arena_dict[arena_name + ".png"].exits
+    rewards = exits["Reward"].values.tolist() 
     rewards = list(set(rewards))
     rewards_ints = [r if type(r) in [int, float] else sum([w*r_ for (w, r_) in r]) for r in rewards]
     rewards_ints.sort()
-
-    reward_colors = []
-    for i in range(len(rewards_ints)):
-        green = i/(len(rewards_ints)-1)
-        reward_colors.append((1-green, green, 0))
+    reward_color = {rewards_ints[0] : (1, 0, 0), rewards_ints[-1] : (0, 1, 0)}
     
-    for k, v in this_arena_dict.items():
-        ax.text(k[1], -k[0], 'E', bbox={'facecolor': reward_colors[rewards.index(v)], 'alpha': 0.5, 'pad': 2})
+    for n, k, v in zip(exits["Name"].values.tolist(), exits["Position"].values.tolist(), exits["Reward"].values.tolist()):
+        r = v if type(v) in [int, float] else sum([w*v_ for (w, v_) in v])
+        ax.text(k[1], -k[0], n, size = 10, bbox={'facecolor': reward_color[r], 'alpha': 0.5, 'pad': 5})
             
     colors = []
     for i in range(len(positions_lists)):
@@ -281,14 +278,14 @@ def make_end_pics(order):
         
         for folder in folders:
             images = []
-            files = os.listdir("saves/{}/plots/predictions".format(folder)) ; files.sort()
+            files = os.listdir("saves/{}/predictions".format(folder)) ; files.sort()
             for f in files:
-                images.append(Image.open("saves/{}/plots/predictions/{}".format(folder, f)))
+                images.append(Image.open("saves/{}/predictions/{}".format(folder, f)))
             new_image = Image.new("RGB", (images[0].size[0], len(files)*images[0].size[1]))
             for i, image in enumerate(images):
                 new_image.paste(image, (0, i*image.size[1]))
             new_image.save("saves/{}_predictions/predictions_{}.png".format(training_name, folder.split("_")[-1]))
-            shutil.rmtree("saves/{}/plots/predictions".format(folder))
+            shutil.rmtree("saves/{}/predictions".format(folder))
             
         images = []
         files = os.listdir("saves/{}_predictions".format(training_name)) ; files.sort()

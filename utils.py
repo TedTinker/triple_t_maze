@@ -3,6 +3,7 @@
 import argparse
 from math import pi
 import numpy as np
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 
@@ -16,6 +17,8 @@ parser.add_argument('--bigger_cube',        type=float, default = 1.2)
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
 parser.add_argument("--gamma",              type=float, default = .99)  # For discounting reward
+parser.add_argument("--default_reward",     type=float, default = -1)#1)
+parser.add_argument("--better_reward",      type=float, default = 1)#((.5, .5),(.5, 3.5)))
 
 # Agent
 parser.add_argument('--body_size',          type=float, default = 2)    
@@ -38,7 +41,7 @@ parser.add_argument('--alpha_lr',           type=float, default = .005)
 parser.add_argument('--eta_lr',             type=float, default = .005) 
 
 # Memory buffer
-parser.add_argument('--capacity',           type=int,   default = 500)
+parser.add_argument('--capacity',           type=int,   default = 300)
 parser.add_argument('--replacement',        type=str,   default = "index")
 parser.add_argument('--selection',          type=str,   default = "uniform")
 parser.add_argument('--power',              type=float, default = 1)
@@ -54,7 +57,7 @@ parser.add_argument("--alpha",              type=float, default = None) # Soft-A
 parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
-parser.add_argument("--tau",                type=float, default = .01)  # For soft-updating target critics
+parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
@@ -66,25 +69,38 @@ except: args, _ = parser.parse_known_args()
 
 #%%
 
-better_expectation = ((.5, .5),(.5, 3.5))
+class Exit:
+    def __init__(self, name, pos, rew):     # Position (Y, X)
+        self.name = name ; self.pos = pos ; self.rew = rew
+
+class Arena_Dict:
+    def __init__(self, start, exits):
+        self.start = start 
+        self.exits = pd.DataFrame(
+            data = [[exit.name, exit.pos, exit.rew] for exit in exits],
+            columns = ["Name", "Position", "Reward"])
+        
 arena_dict = {
-    "1.png" : ((2,2),                         # Start (Y, X)
-               {(1,0) : 1,                    # This reward here
-               (1,4) : better_expectation}),  # This reward here
-    "2.png" : ((3,3),
-               {(0,1) : 1,
-                (0,5) : 1,
-                (4,1) : better_expectation,
-                (4,5) : 1}),
-    "3.png" : ((4, 4),
-                {(0,1) : 1,
-                (0,3) : 1,
-                (0,5) : better_expectation,
-                (0,7) : 1,
-                (6,1) : 1,
-                (6,3) : 1,
-                (6,5) : 1,
-                (6,7) : 1})}
+    "1.png" : Arena_Dict(
+        (2,2), 
+        [Exit("L", (1,0), args.default_reward),
+        Exit("R", (1,4), args.better_reward)]),
+    "2.png" : Arena_Dict(
+        (3,3), 
+        [Exit("LL", (4,1), args.better_reward),
+        Exit("LR", (0,1), args.default_reward),
+        Exit("RL", (0,5), args.default_reward),
+        Exit("RR", (4,5), args.default_reward)]),
+    "3.png" : Arena_Dict(
+        (4,4), 
+        [Exit("LLL", (6,3), args.default_reward),
+        Exit("LLR", (6,1), args.default_reward),
+        Exit("LRL", (0,1), args.default_reward),
+        Exit("LRR", (0,3), args.default_reward),
+        Exit("RLL", (0,5), args.better_reward),
+        Exit("RLR", (0,7), args.default_reward),
+        Exit("RRL", (6,7), args.default_reward),
+        Exit("RRR", (6,5), args.default_reward)])}
 
 
 
@@ -107,7 +123,7 @@ if args.id != 0:
         os.mkdir(folder)
         os.mkdir(folder + "/agents")
         os.mkdir(folder + "/plots")
-        os.mkdir(folder + "/plots/predictions")
+        os.mkdir(folder + "/predictions")
     except:
         already_done = True
 
@@ -206,7 +222,7 @@ def duration():
   
 
 # How to save plots.
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt, font_manager as fm
 import shutil
 
 def remove_folder(folder):
@@ -275,7 +291,7 @@ def plot_some_predictions(args, images, pred_next_images, actions, masks, steps)
     new_image = Image.new("RGB", (args.predictions_to_plot*pred_images[0].size[0], pred_images[0].size[1]))
     for i, image in enumerate(pred_images):
         new_image.paste(image, (i*image.size[0], 0))
-    new_image.save("{}/plots/predictions/{}.png".format(folder, str(steps).zfill(6)))
+    new_image.save("{}/predictions/{}.png".format(folder, str(steps).zfill(6)))
 
 # How to plot an episode's rewards.
 def plot_rewards(rewards):
@@ -472,19 +488,20 @@ def plot_wins(wins, folder = folder, name = "", min_max = (0,0)):
     save_plot("wins" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
+    
+    
 # How to plot kinds of victory.
 def plot_which(which, folder = folder, name = ""):
     which = [(w, r) if type(r) in [int, float] else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
-    which = [w[0] + ", " + str(w[1]) for w in which]
-    kinds = list(set(which))
-    kinds.sort()
-    kinds.insert(0, kinds.pop(-1))
-    kinds.reverse()
-    # Screw that, do it manually 
-    kinds = ["FAIL, -1", 
-             "1A, 1", "1B, 2.0", 
-             "2A, 1", "2B, 1", "2C, 2.0", "2D, 1",
-             "3A, 1", "3B, 1", "3C, 2.0", "3D, 1", "3E, 1", "3F, 1", "3G, 1", "3H, 1"]
+    #which = [w[0] + ", " + str(w[1]) for w in which]
+    
+    which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
+    kinds = ["FAIL", 
+             "L", "R",
+             "LL", "LR", "RL", "RR",
+             "LLL", "LLR", "LRL", "LRR", "RLL", "RLR", "RRL", "RRR"]
+    kinds = [r"$\bf{(" + k + ")}$" if k in ["R", "LL", "RLL"] else k for k in kinds]
+    
     kinds.reverse()
     plt.scatter([0 for _ in kinds], kinds, color = (0,0,0,0))
     plt.axhline(y = 13.5, color = (0, 0, 0, .2))

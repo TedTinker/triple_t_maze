@@ -20,6 +20,29 @@ entropy_3_curious_3 : --target_entropy 0 	--eta 10
 
 
 
+
+entropy_0_curious_0_hr : --target_entropy -5  --eta 0 --better_reward 5
+entropy_1_curious_0_hr : --target_entropy -2 	--eta 0 --better_reward 5
+entropy_2_curious_0_hr : --target_entropy -1 	--eta 0 --better_reward 5
+entropy_3_curious_0_hr : --target_entropy 0 	--eta 0 --better_reward 5
+
+entropy_0_curious_1_hr : --target_entropy -5  --eta 3 --better_reward 5
+entropy_1_curious_1_hr : --target_entropy -2 	--eta 3 --better_reward 5
+entropy_2_curious_1_hr : --target_entropy -1 	--eta 3 --better_reward 5
+entropy_3_curious_1_hr : --target_entropy 0 	--eta 3 --better_reward 5
+
+entropy_0_curious_2_hr : --target_entropy -5  --eta 6 --better_reward 5
+entropy_1_curious_2_hr : --target_entropy -2 	--eta 6 --better_reward 5
+entropy_2_curious_2_hr : --target_entropy -1 	--eta 6 --better_reward 5
+entropy_3_curious_2_hr : --target_entropy 0 	--eta 6 --better_reward 5
+
+entropy_0_curious_3_hr : --target_entropy -5  --eta 10 --better_reward 5
+entropy_1_curious_3_hr : --target_entropy -2 	--eta 10 --better_reward 5
+entropy_2_curious_3_hr : --target_entropy -1 	--eta 10 --better_reward 5
+entropy_3_curious_3_hr : --target_entropy 0 	--eta 10 --better_reward 5
+
+
+
 entropy_0_curious_0_l_2 : --target_entropy -5  	--eta 0 	--lookahead 2
 entropy_1_curious_0_l_2 : --target_entropy -2 	--eta 0  	--lookahead 2
 entropy_2_curious_0_l_2 : --target_entropy -1 	--eta 0  	--lookahead 2

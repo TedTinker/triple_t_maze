@@ -86,11 +86,11 @@ class Arena():
     def __init__(self, arena_name, args = args, GUI = False):
         self.args = args
         self.arena_name = arena_name
-        self.arena_dict = arena_dict[arena_name + ".png"]
+        self.start = arena_dict[arena_name + ".png"].start
+        self.exits = arena_dict[arena_name + ".png"].exits
         self.arena_map = cv2.imread("arenas/" + arena_name + ".png")
         self.w, self.h, _ = self.arena_map.shape
         self.physicsClient = get_physics(GUI, self.w, self.h)
-        self.start = self.arena_dict[0]
         self.ends = {}
         self.colors = {}
         self.already_constructed = False
@@ -106,15 +106,13 @@ class Arena():
             p.loadURDF("plane.urdf", [10,10,0], globalScaling = .5,
                        useFixedBase = True, physicsClientId = self.physicsClient) 
             self.ends = {}
-            end_num = 0
-            end_names = [self.arena_name + LETTERS[i] for i in range(len(self.arena_dict[1].keys()))]
             for loc in ((x,y) for x in range(self.w) for y in range(self.h)):
                 pos = [loc[0],loc[1],.5]
                 if((self.arena_map[loc] == [255]).all()):
-                    if(loc in list(self.arena_dict[1].keys())):
-                        end = ((pos[0]-.5, pos[0] + .5), (pos[1] - .5, pos[1] + .5))
-                        self.ends[end_names[end_num]] = (end, self.arena_dict[1][loc])
-                        end_num += 1
+                    if(not self.exits.loc[self.exits["Position"] == loc].empty):
+                        row = self.exits.loc[self.exits["Position"] == loc]
+                        end_pos = ((pos[0]-.5, pos[0] + .5), (pos[1] - .5, pos[1] + .5))
+                        self.ends[row["Name"].values[0]] = (end_pos, int(row["Reward"].values[0]))
                 else:
                     ors = p.getQuaternionFromEuler([0,0,0])
                     color = self.arena_map[loc][::-1] / 255
@@ -196,7 +194,7 @@ class Arena():
         return(col)
 
 if __name__ == "__main__":
-    arena = Arena(arena_name = "1", GUI = False) #True)
+    arena = Arena(arena_name = "1", GUI = True)
     arena.start_arena()
     
 new_text("arena.py loaded.")
