@@ -8,8 +8,8 @@ from itertools import product
 from utils import args, add_discount, arena_dict, new_text
 
 class to_push:
-    def __init__(self, GAMMA):
-        self.GAMMA = GAMMA
+    def __init__(self, args):
+        self.args = args
         self.obs = []
         self.spe = []
         self.act = []
@@ -30,8 +30,8 @@ class to_push:
     def finalize_rewards(self):
         for i in range(len(self.rew)):
             if(self.rew[i] > 0):
-                self.rew[i] = self.rew[i]* (self.GAMMA**i)
-        self.rew = add_discount(self.rew, .9)
+                self.rew[i] = self.rew[i]* (self.args.reward_scaling**i)
+        self.rew = add_discount(self.rew, self.args.gamma)
         
     def push(self, memory, agent):
         for _ in range(len(self.rew)):
@@ -51,14 +51,14 @@ class to_push:
         
 
 class Body:
-    def __init__(self, num, pos, spe, roll, pitch, yaw, GAMMA):
+    def __init__(self, num, pos, spe, roll, pitch, yaw, args):
         self.num = num
         self.pos = pos; self.spe = spe
         self.roll = roll; self.pitch = pitch; self.yaw = yaw
         self.age = 0
         self.action = torch.tensor([0.0, 0.0])
         self.hidden = None
-        self.to_push = to_push(GAMMA)
+        self.to_push = to_push(args)
 
 
 
@@ -148,7 +148,7 @@ class Arena():
         x, y = cos(yaw)*spe, sin(yaw)*spe
         p.resetBaseVelocity(num, (x,y,0),(0,0,0), physicsClientId = self.physicsClient)
         p.changeVisualShape(num, -1, rgbaColor = color, physicsClientId = self.physicsClient)
-        body = Body(num, pos, spe, inherent_roll, inherent_pitch, yaw, self.args.gamma)
+        body = Body(num, pos, spe, inherent_roll, inherent_pitch, yaw, self.args)
                 
         return(body)
     

@@ -16,7 +16,7 @@ parser.add_argument('--boxes_per_cube',     type=int,   default = 2)
 parser.add_argument('--bigger_cube',        type=float, default = 1.2)    
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
-parser.add_argument("--gamma",              type=float, default = .99)  # For discounting reward
+parser.add_argument("--gamma",              type=float, default = .9)  # For discounting reward
 parser.add_argument("--default_reward",     type=float, default = -1)#1)
 parser.add_argument("--better_reward",      type=float, default = 1)#((.5, .5),(.5, 3.5)))
 
@@ -30,7 +30,7 @@ parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
 parser.add_argument('--lookahead',          type=int,   default = 1)
-parser.add_argument('--batch_size',         type=int,   default = 128)
+parser.add_argument('--batch_size',         type=int,   default = 2)#128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
@@ -49,7 +49,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
+parser.add_argument('--epochs_per_arena',   type=int,   default = 10)#1500)
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -61,7 +61,7 @@ parser.add_argument("--tau",                type=float, default = .05)  # For so
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 50)
+parser.add_argument('--show_and_save',      type=int,   default = 2)#50)
 parser.add_argument('--predictions_to_plot',type=int,   default = 2)
 
 try:    args = parser.parse_args()
@@ -193,10 +193,10 @@ def init_weights(m):
             
             
 # How to get rolling average.
-def get_rolling_average(wins, roll = 100):
-    if(len(wins) < roll):
-        return(sum(wins)/len(wins))
-    return(sum(wins[-roll:])/roll)       
+def get_rolling_average(exits, roll = 100):
+    if(len(exits) < roll):
+        return(sum(exits)/len(exits))
+    return(sum(exits[-roll:])/roll)       
 
 
 # How to add discount to a list.
@@ -356,7 +356,7 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
     if(not all(i == 0 for i in icy)):
         plt.plot(icx, icy, color = "green", label = "ln Curiosity")
     if(not all(i == 0 for i in iey)):
-        plt.plot(iex, iey, color = "blue",  label = "Entropy")
+        plt.plot(iex, iey, color = "blue",  label = "sq Entropy")
     plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
     plt.legend(loc = 'upper left')
     plt.ylim(min_max)
@@ -378,7 +378,7 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
     if(not all(i == 0 for i in icy)):
         plt.plot(icx, icy, color = "green", label = "ln Curiosity")
     if(not all(i == 0 for i in iey)):
-        plt.plot(iex, iey, color = "blue",  label = "Entropy")
+        plt.plot(iex, iey, color = "blue",  label = "sq Entropy")
     plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
     plt.legend(loc = 'upper left')
     
@@ -476,16 +476,16 @@ def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max =
     
     
   
-# How to plot victory-rates.
-def plot_wins(wins, folder = folder, name = "", min_max = (0,0)):
-    x = [i for i in range(1, len(wins)+1)]
+# How to plot exit-rates.
+def plot_exits(exits, folder = folder, name = "", min_max = (0,0)):
+    x = [i for i in range(1, len(exits)+1)]
     divide_arenas(x)
-    plt.plot(x, wins, color = "gray")
+    plt.plot(x, exits, color = "gray")
     plt.ylim([0, 1])
-    plt.title("Win-rates")
+    plt.title("Exit-rates")
     plt.xlabel("Episodes")
-    plt.ylabel("Win-rate")
-    save_plot("wins" + ("_{}".format(name) if name != "" else ""), folder)
+    plt.ylabel("Exit-rate")
+    save_plot("exits" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
     
     
@@ -511,7 +511,7 @@ def plot_which(which, folder = folder, name = ""):
     x = [i for i in range(1, len(which)+1)]
     divide_arenas(x)
     plt.scatter(x, which, color = "gray")
-    plt.title("Kind of Win")
+    plt.title("Kind of Exit")
     plt.xlabel("Episodes")
     plt.ylabel("Which Victory")
     save_plot("which" + ("_{}".format(name) if name != "" else ""), folder)

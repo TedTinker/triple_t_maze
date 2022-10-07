@@ -208,6 +208,8 @@ class Agent:
         if(critic2_loss != None): critic2_loss = log(critic2_loss.item())
         losses = np.array([[trans_loss, alpha_loss, actor_loss, critic1_loss, critic2_loss]])
         
+        try:    intrinsic_entropy = (1 if intrinsic_entropy >= 0 else -1) * abs(intrinsic_entropy)**.5
+        except: pass
         try:    intrinsic_curiosity = log(intrinsic_curiosity)
         except: pass
         

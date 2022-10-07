@@ -157,15 +157,15 @@ class Env():
         col = self.arena.other_collisions(self.body.num)
         if(col): reward -= self.args.wall_punishment
         if(not end):  end = self.steps >= self.args.max_steps
-        win = which[0] != "FAIL"
-        if(end and not win): reward = -1
+        exit = which[0] != "FAIL"
+        if(end and not exit): reward = -1
         next_image, next_speed = self.get_obs()
 
         self.body.to_push.add(
             image.cpu(), speed.cpu(), 
             self.body.action, reward,
             next_image.cpu(), next_speed.cpu(), end)
-        return(end, win, which, self.body.pos)
+        return(end, exit, which, self.body.pos)
     
     def step_by_hand(self, yaw, spe):
         self.steps += 1
@@ -184,36 +184,33 @@ class Env():
         col = self.arena.other_collisions(self.body.num)
         if(col): reward -= self.args.wall_punishment
         if(not end):  end = self.steps >= self.args.max_steps
-        win = which[0] != "FAIL"
-        if(end and not win): reward = -1
-        return(end, win, reward)
+        exit = which[0] != "FAIL"
+        if(end and not exit): reward = -1
+        return(end, exit, reward)
       
 
 
 if __name__ == "__main__":
-    env = Env("2", GUI = True)
+    env = Env("1", GUI = True)
     env.reset()   
     env.render("body") 
     end = False
-    rewards = []
     while(end == False):
         print()
         yaw   = input("\nYaw?\n")
         speed = input("\nSpeed?\n")
         if(yaw == ""): yaw = 0
         if(speed == ""): speed = 1
-        end, win, reward = env.step_by_hand(float(yaw), float(speed))
-        rewards.append(reward)
-    for i in range(len(rewards)):
-        if(rewards[i] > 0):
-            rewards[i] = rewards[i]* (args.gamma**i)
-    rewards = add_discount(rewards, .9)
-    plot_rewards(rewards)
+        end, exit, reward = env.step_by_hand(float(yaw), float(speed))
+        env.body.to_push.rew.append(reward)
+    env.body.to_push.finalize_rewards()
+    plot_rewards(env.body.to_push.rew)
     env.close(forever = True)
 
 
 
 new_text("env.py loaded.")
+
 
 
 

@@ -19,7 +19,7 @@ import torch
 
 # When I import this, it tries using provided parameters for utils' args.
 from utils import arena_dict, new_text, \
-    plot_rewards, plot_losses, plot_wins, plot_extrinsic_intrinsic, plot_which, plot_cumulative_rewards
+    plot_rewards, plot_losses, plot_exits, plot_extrinsic_intrinsic, plot_which, plot_cumulative_rewards
 
 
 
@@ -215,7 +215,7 @@ def make_end_pics(order):
     for folder in all_folders:
         plot_dict_list.append(torch.load("saves/" + folder + "/plot_dict.pt"))
         
-    wins_rolled_min_max = get_min_max("wins_rolled", plot_dict_list)
+    exits_rolled_min_max = get_min_max("exits_rolled", plot_dict_list)
     rew_min_max = get_min_max("rew", plot_dict_list, True)
     pun_min_max = get_min_max("pun", plot_dict_list, True)
     ext_min_max = get_min_max("ext", plot_dict_list)
@@ -228,7 +228,7 @@ def make_end_pics(order):
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
     
     for plot_dict in plot_dict_list:
-        plot_wins(plot_dict["wins_rolled"], folder = plot_dict["folder"], name = "", min_max = wins_rolled_min_max)
+        plot_exits(plot_dict["exits_rolled"], folder = plot_dict["folder"], name = "", min_max = exits_rolled_min_max)
         plot_which(plot_dict["which"], folder = plot_dict["folder"], name = "")
         plot_cumulative_rewards(plot_dict["rew"], plot_dict["pun"], folder = plot_dict["folder"], name = "", min_max = rew_min_max)
         plot_extrinsic_intrinsic(plot_dict["ext"], plot_dict["cur"], plot_dict["ent"], folder = plot_dict["folder"], name = "", min_max = ext_min_max)
@@ -240,7 +240,7 @@ def make_end_pics(order):
         else: os.mkdir(new_folder)
         
         folders = [folder for folder in all_folders if "_".join(folder.split("_")[:-1]) == training_name]
-        plot_names = ["cumulative", "ext_int", "ext_int_normalized", "loss_agent", "loss_trans", "which", "wins"]
+        plot_names = ["cumulative", "ext_int", "ext_int_normalized", "loss_agent", "loss_trans", "which", "exits"]
         for name in plot_names:
             images = []
             for folder in folders:
@@ -257,7 +257,7 @@ def make_end_pics(order):
             new_image.save(new_folder + "/{}.png".format(name))
             
         images = []    
-        files = os.listdir(new_folder); files.sort()
+        files = [n + ".png" for n in plot_names]
         for file in files:
             images.append(Image.open(new_folder + "/" + file))
             os.remove(new_folder + "/" + file)

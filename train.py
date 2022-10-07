@@ -19,7 +19,7 @@ def episode(env, agent, push = True, delay = False):
     positions = []
     with torch.no_grad():
         while(done == False):
-            done, win, which, pos = env.step(agent)
+            done, exit, which, pos = env.step(agent)
             positions.append(pos)
             if(delay): sleep(.5)
             if(device == "cuda"): torch.cuda.synchronize(device=device)
@@ -28,7 +28,7 @@ def episode(env, agent, push = True, delay = False):
     if(push): env.body.to_push.push(agent.memory, agent)
     else:     env.body.to_push.empty()
     env.close()
-    return(win, which, rewards, positions)
+    return(exit, which, rewards, positions)
 
 
 
@@ -68,7 +68,7 @@ class Trainer():
             #    save_agent(self.agent, suf = self.e )
         else:
             save_agent(self.agent, suf = self.e )
-        self.wins = []; self.wins_rolled = []; self.which = []
+        self.exits = []; self.exits_rolled = []; self.which = []
         self.ext= []; self.int_cur = []; self.int_ent = []
         self.rewards = []; self.punishments = []
         self.losses = np.array([[None]*5])
@@ -94,10 +94,10 @@ class Trainer():
 
     def epoch(self, plot_predictions = False, append = True):
         for _ in range(self.args.episodes_per_epoch):
-            win, which, rewards, _ = self.one_episode()
+            exit, which, rewards, _ = self.one_episode()
             if(append):
-                self.wins.append(win)
-                self.wins_rolled.append(get_rolling_average(self.wins))
+                self.exits.append(exit)
+                self.exits_rolled.append(get_rolling_average(self.exits))
                 self.which.append(which)
                 rewards = sum(rewards)
                 if(rewards > 0): self.rewards.append(rewards); self.punishments.append(0)
@@ -142,7 +142,7 @@ class Trainer():
                 plot_dict = {
                     "args"        : self.args,
                     "folder"      : folder,
-                    "wins_rolled" : self.wins_rolled,
+                    "exits_rolled" : self.exits_rolled,
                     "which"       : self.which,
                     "rew"         : self.rewards,
                     "pun"         : self.punishments, 
@@ -156,11 +156,11 @@ class Trainer():
     
     def test(self, size = 100):
         self.agent.eval()
-        wins = 0
+        exits = 0
         for i in range(size):
-            w, which, rewards, positions = self.one_episode(push = False, GUI = True, delay = False)
-            wins += w
-        print("Agent wins {} out of {} games ({}%).".format(wins, size, round(100*(wins/size))))
+            exit, which, rewards, positions = self.one_episode(push = False, GUI = True, delay = False)
+            exits += exit
+        print("Agent exits {} out of {} games ({}%).".format(exits, size, round(100*(exits/size))))
         
     def get_positions(self, size, arena_name = None):
         self.agent.eval()
