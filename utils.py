@@ -30,7 +30,7 @@ parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
 parser.add_argument('--lookahead',          type=int,   default = 1)
-parser.add_argument('--batch_size',         type=int,   default = 2)#128)
+parser.add_argument('--batch_size',         type=int,   default = 128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
@@ -49,7 +49,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = 10)#1500)
+parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -61,8 +61,8 @@ parser.add_argument("--tau",                type=float, default = .05)  # For so
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 2)#50)
-parser.add_argument('--predictions_to_plot',type=int,   default = 2)
+parser.add_argument('--show_and_save',      type=int,   default = 250)
+parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
 except: args, _ = parser.parse_known_args()
