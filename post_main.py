@@ -348,7 +348,9 @@ else:
             rows.append(row) ; row = []
     order = rows
     make_end_pics(order)
+    new_text("\n\nDone with end pics...")
     make_together_pic(order)
+    new_text("\n\nDone with together pics...")
     make_mega_vid(order)
     new_text("\n\nDone!")
 

@@ -128,9 +128,9 @@ class Transitioner(nn.Module):
         delete_these(False, image, speed, x)
         return(encoding, hidden) 
 
-    def forward(self, image, speed, actions):
+    def forward(self, image, speed, actions, hidden = None):
         actions = actions.to(device)
-        encoding, _ = self.just_encode(image, speed)
+        encoding, _ = self.just_encode(image, speed, hidden)
         actions = self.actions_in(actions)
         x = torch.cat((encoding, actions), dim=-1)
         next_image = self.next_image_1(x)

@@ -16,7 +16,6 @@ from arena import get_physics, Arena
 # Made an environment! 
 class Env():   
     
-    
     def __init__(self, arena_name, args = args, GUI = False):
         self.args = args
         self.GUI = GUI
@@ -45,6 +44,13 @@ class Env():
         self.resets += 1; self.steps = 0
         self.body = self.arena.start_arena()
         return(self.get_obs())
+    
+    def reposition(self, pos, yaw):
+        self.body.pos = pos 
+        self.body.yaw = yaw
+        ors = p.getQuaternionFromEuler([pi/2, 0, yaw])
+        p.resetBasePositionAndOrientation(self.body.num, pos, ors, physicsClientId = self.arena.physicsClient)
+        
 
     def get_obs(self):
         image_size = self.args.image_size
@@ -99,7 +105,7 @@ class Env():
             fov = 90, aspect = 1, nearVal = 0.001, 
             farVal = dist + 2, physicsClientId = self.arena.physicsClient)
         _, _, rgba, _, _ = p.getCameraImage(
-            width=64, height=64,
+            width=128, height=128,
             projectionMatrix=proj_matrix, viewMatrix=view_matrix, 
             physicsClientId = self.arena.physicsClient)
         
@@ -167,7 +173,7 @@ class Env():
             next_image.cpu(), next_speed.cpu(), end)
         return(end, exit, which, self.body.pos)
     
-    def step_by_hand(self, yaw, spe):
+    def step_by_hand(self, yaw, spe, verbose = True):
         self.steps += 1
         self.body.action[0] = yaw
         self.body.action[1] = spe
@@ -175,7 +181,7 @@ class Env():
         spe = self.args.min_speed + ((self.body.action[1].item() + 1)/2) * \
             (self.args.max_speed - self.args.min_speed)
         yaw, spe = self.real_yaw_spe(yaw, spe)
-        self.change_velocity(yaw, spe, verbose = True)
+        self.change_velocity(yaw, spe, verbose = verbose)
         
         p.stepSimulation(physicsClientId = self.arena.physicsClient)
         self.body.pos, self.body.yaw, self.body.spe = self.arena.get_pos_yaw_spe(self.body.num)

@@ -8,6 +8,7 @@ import numpy as np
 import enlighten
 from copy import deepcopy
 from time import sleep
+from itertools import accumulate
 
 from utils import device, args, save_agent, load_agent, get_rolling_average, reset_start_time, folder, new_text
 from env import Env
@@ -115,20 +116,20 @@ class Trainer():
     def train(self):
         self.agent.train()
         manager = enlighten.Manager()
-        E = manager.counter(total = 3*args.epochs_per_arena, desc = "Epochs:", unit = "ticks", color = "blue")
+        E = manager.counter(total = sum(self.args.epochs_per_arena), desc = "Epochs:", unit = "ticks", color = "blue")
         if(self.args.fill_memory):
             for e in range(self.args.batch_size):
                 self.epoch(plot_predictions = False, append = False)
-        epochs = range(len(self.arena_names) * self.args.epochs_per_arena)
-        
-        for e in epochs:
+        epoch_sum = list(accumulate(self.args.epochs_per_arena))
+
+        while(True):
             E.update()
             self.e += 1
             self.epoch(plot_predictions = self.e % self.args.show_and_save == 0)
             if(self.e % self.args.show_and_save == 0): 
                 save_agent(self.agent, suf = self.e)
                 
-            if(self.e >= (self.current_arena+1) * self.args.epochs_per_arena and self.current_arena+1 < len(self.arena_names)):
+            if(self.e >= epoch_sum[self.current_arena] and self.current_arena+1 < len(self.arena_names)):
                 self.current_arena += 1
                 self.close_env(True)
                 if(self.args.discard_memory): self.agent.restart_memory()
@@ -137,7 +138,7 @@ class Trainer():
                     for e_ in range(self.args.batch_size):
                         self.epoch(plot_predictions = False, append = False)
 
-            if(self.e >= len(self.arena_names) * self.args.epochs_per_arena):
+            if(self.e >= epoch_sum[-1]):
                 save_agent(self.agent, suf = self.e)
                 plot_dict = {
                     "args"        : self.args,

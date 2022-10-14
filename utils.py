@@ -23,9 +23,9 @@ parser.add_argument("--better_reward",      type=float, default = 1)#((.5, .5),(
 # Agent
 parser.add_argument('--body_size',          type=float, default = 2)    
 parser.add_argument('--image_size',         type=int,   default = 8)
-parser.add_argument('--max_steps',          type=int,   default = 30)
-parser.add_argument('--max_speed',          type=float, default = 50)
 parser.add_argument('--min_speed',          type=float, default = 40)
+parser.add_argument('--max_speed',          type=float, default = 50)
+parser.add_argument('--max_steps',          type=int,   default = 30)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
@@ -38,7 +38,7 @@ parser.add_argument('--trans_lr',           type=float, default = .001)
 parser.add_argument('--actor_lr',           type=float, default = .001) 
 parser.add_argument('--critic_lr',          type=float, default = .001) 
 parser.add_argument('--alpha_lr',           type=float, default = .005) 
-parser.add_argument('--eta_lr',             type=float, default = .005) 
+parser.add_argument('--eta_lr',             type=float, default = .005)     # Not yet implemented
 
 # Memory buffer
 parser.add_argument('--capacity',           type=int,   default = 300)
@@ -49,7 +49,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = 1500)
+parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -239,9 +239,10 @@ def delete_with_name(name, subfolder = "plots"):
         if(file.startswith(name)):
             os.remove(folder + "/{}/{}".format(subfolder, file))
             
-
+from itertools import accumulate
 def divide_arenas(epochs, here = plt):
-    x = [e for e in epochs if e%args.epochs_per_arena == 0 and e != 0]
+    sums = list(accumulate(args.epochs_per_arena))
+    x = [e for e in epochs if e in sums]
     for x_ in x:
         here.axvline(x=x_, color = (0,0,0,.2))
 

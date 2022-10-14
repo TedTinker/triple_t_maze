@@ -2,6 +2,7 @@
 
 from utils import args, new_text, already_done, folder
 from train import Trainer
+from itertools import accumulate
 
 if(already_done):
     new_text("\n\n{} already done training and getting positions!".format(folder))
@@ -28,23 +29,25 @@ else:
 
     manager = enlighten.Manager()
     E = manager.counter(total = len(load_names), desc = "Positions:", unit = "ticks", color = "blue")
-
+    epoch_sum = list(accumulate(trainer.args.epochs_per_arena))
+    
     for load_name in load_names:
         positions_lists = []      
         trainer.new_load_name(folder, load_name)
-        which_arena = int(load_name)/trainer.args.epochs_per_arena
-        if(which_arena == floor(which_arena)): 
-            if(which_arena == 0): pass 
-            elif(which_arena == 3): which_arena = 2
-            else:
-                trainer.current_arena = floor(which_arena) - 1
-                positions_list, arena_name = trainer.get_positions(size = pos_count)
-                pos_dict[(load_name, arena_name)].append(positions_list)
+        load_int = int(load_name)
+        which_arena = 0 if load_int <= epoch_sum[0] else 1 if load_int <= epoch_sum[1] else 2
+        next_arena = 1 if load_int == epoch_sum[0] else 2 if load_int == epoch_sum[1] else None
+        if(next_arena == None): pass 
+        else:
+            trainer.current_arena = next_arena
+            positions_list, arena_name = trainer.get_positions(size = pos_count)
+            pos_dict[(load_name, arena_name)].append(positions_list)
         trainer.current_arena = floor(which_arena)
         positions_list, arena_name = trainer.get_positions(size = pos_count)
         pos_dict[(load_name, arena_name)].append(positions_list)
         E.update()
         
     torch.save((trainer.args.explore_type, pos_dict), folder + "/pos_dict.pt")
+    torch.save(args, folder + "/args.pt")
 
     new_text("\n\n{} finished getting positions!".format(folder))
