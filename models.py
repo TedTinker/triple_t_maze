@@ -6,7 +6,7 @@ from torch.distributions import Normal
 from torchinfo import summary as torch_summary
 
 from utils import args, device, ConstrainedConv2d, delete_these, \
-    init_weights, shape_out, flatten_shape, new_text
+    init_weights, shape_out, flatten_shape
 
 
 
@@ -89,7 +89,8 @@ class Transitioner(nn.Module):
                 in_channels = 16, 
                 out_channels = 4,
                 kernel_size = (1,1)),
-            nn.Tanh()) 
+            #nn.Tanh()) 
+            )
 
         self.next_speed = nn.Sequential(
             nn.Linear(self.args.encode_size + self.args.hidden_size, 1)) 
@@ -151,11 +152,15 @@ class Transitioner(nn.Module):
             pred_next_images, pred_next_speeds = self(images.detach(), speeds.detach(), actions.detach())
         predictions = torch.cat([pred_next_images.flatten(2), pred_next_speeds], dim = -1)
         targets = torch.cat([next_images.flatten(2), next_speeds], dim = -1)
+        print("\nIn curiosity:")
         divergence = F.kl_div(
             F.log_softmax(predictions * masks[:,self.args.lookahead-1:], dim=-1), 
             F.log_softmax(targets * masks[:,self.args.lookahead-1:], dim=-1), 
             reduction="none", log_target=True)
+        print(divergence.shape)
         divergence = sum([divergence[:,:,i] for i in range(divergence.shape[-1])])
+        print(divergence.shape)
+        print()
         return(divergence.unsqueeze(-1))
 
 
@@ -263,5 +268,5 @@ if __name__ == "__main__":
     print()
     print(torch_summary(critic, ((1, args.encode_size),(1,2))))
     
-new_text("models.py loaded.")
+print("models.py loaded.")
 # %%

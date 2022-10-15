@@ -8,7 +8,7 @@ from itertools import product
 from matplotlib import pyplot as plt
 from torchvision.transforms.functional import resize
 
-from utils import args, plot_rewards, add_discount, new_text
+from utils import args, plot_rewards
 from arena import get_physics, Arena
 
 
@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
 
 
-new_text("env.py loaded.")
+print("env.py loaded.")
 
 
 

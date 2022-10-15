@@ -5,7 +5,9 @@ import torch
 from random import choices
 from itertools import product
 
-from utils import args, add_discount, arena_dict, new_text
+from utils import args, add_discount, arena_dict
+
+
 
 class to_push:
     def __init__(self, args):
@@ -197,5 +199,5 @@ if __name__ == "__main__":
     arena = Arena(arena_name = "1", GUI = True)
     arena.start_arena()
     
-new_text("arena.py loaded.")
+print("arena.py loaded.")
 # %%

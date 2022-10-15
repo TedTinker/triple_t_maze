@@ -9,7 +9,7 @@ import torch.optim as optim
 import numpy as np
 from math import log
 
-from utils import args, plot_curiosity, plot_some_predictions, new_text
+from utils import args, plot_curiosity, plot_some_predictions
 from buffer import RecurrentReplayBuffer
 from models import Transitioner, Actor, Critic
 
@@ -92,9 +92,30 @@ class Agent:
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
         pred_next_images, pred_next_speeds = self.transitioner(images[:,:-self.args.lookahead].detach(), speeds[:,:-self.args.lookahead].detach(), sequential_actions.detach())
-        trans_loss_image = F.mse_loss(pred_next_images*image_masks.detach()[:,self.args.lookahead-1:], images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:])
-        trans_loss_speed = F.mse_loss(pred_next_speeds*masks.detach()[:,self.args.lookahead-1:],       speeds[:,self.args.lookahead:]*masks.detach()[:,self.args.lookahead-1:])
-        trans_loss = trans_loss_image + trans_loss_speed
+        
+        flat_images = images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:]
+        flat_images = flat_images.flatten()
+        flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
+        flat_pred_images = flat_pred_images.flatten()
+        
+        flat_speeds = speeds[:,self.args.lookahead:]*masks.detach()[:,self.args.lookahead-1:]
+        flat_speeds = flat_speeds.flatten()
+        flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
+        flat_pred_speeds = flat_pred_speeds.flatten()
+        
+        flat_real = torch.cat([flat_images, flat_speeds])
+        flat_pred = torch.cat([flat_pred_images, flat_pred_speeds])
+        
+        #trans_loss = F.mse_loss(flat_pred, flat_real, reduction='sum')
+        trans_loss = F.kl_div(
+            F.log_softmax(flat_pred, dim=-1), 
+            F.log_softmax(flat_real, dim=-1), 
+            reduction="sum", log_target=True) # If this works, can I also use it for curiosity? Save time.
+        
+        print("\nIn trans_loss:")
+        print(trans_loss.shape)
+        print()
+        
         self.trans_optimizer.zero_grad()
         trans_loss.backward()
         self.trans_optimizer.step()
@@ -116,7 +137,7 @@ class Agent:
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions):
-            plot_some_predictions(self.args, images, pred_next_images, actions, masks, self.steps)
+            plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps)
             #plot_curiosity(rewards.detach(), curiosity.detach(), masks.detach())
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
@@ -253,4 +274,4 @@ class Agent:
         self.critic2.train()
         self.critic2_target.train()
         
-new_text("agent.py loaded.")
+print("agent.py loaded.")

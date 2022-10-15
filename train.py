@@ -10,7 +10,7 @@ from copy import deepcopy
 from time import sleep
 from itertools import accumulate
 
-from utils import device, args, save_agent, load_agent, get_rolling_average, reset_start_time, folder, new_text
+from utils import device, args, save_agent, load_agent, get_rolling_average, reset_start_time, folder
 from env import Env
 from agent import Agent
 
@@ -179,5 +179,5 @@ class Trainer():
         self.close_env(True)
         return(positions_list, arena_name)
     
-new_text("train.py loaded.")
+print("train.py loaded.")
 # %%

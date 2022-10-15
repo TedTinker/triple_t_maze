@@ -2,7 +2,7 @@
 
 #%%
 
-from utils import plot_rewards, load_agent
+from utils import load_agent, norm_speed_to_speed
 from env import Env 
 from agent import Agent
 
@@ -85,7 +85,7 @@ def play(folder, suf, arena_name):
                 _, _, _ = env.step_by_hand(yaw, speed, verbose = False)
             real_image, real_speed = env.get_obs()
             env.reposition(old_pos, old_yaw)           
-            predicted_speed = round(predicted_speed.item(),2)#round(env.args.min_speed + (env.args.max_speed - env.args.min_speed) * ((predicted_speed.item()+1)/2), 2)
+            predicted_speed = norm_speed_to_speed(args, predicted_speed)
             plot_predition(
                 actions_copy, 
                 (actual_image[:,:,:-1]+1)/2, 

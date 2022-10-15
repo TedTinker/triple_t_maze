@@ -4,6 +4,19 @@ import argparse
 from math import pi
 import numpy as np
 import pandas as pd
+import datetime
+from itertools import accumulate
+from matplotlib import pyplot as plt, font_manager as fm
+import shutil
+from PIL import Image
+from random import choice
+from math import degrees
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Without this, pyplot crashes the kernal
+
+import torch
+from torch import nn
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 parser = argparse.ArgumentParser()
 
@@ -49,7 +62,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
+parser.add_argument('--epochs_per_arena',   type=int,   default = (1500, 3000, 4500))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -67,7 +80,7 @@ parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 try:    args = parser.parse_args()
 except: args, _ = parser.parse_known_args()
 
-#%%
+
 
 class Exit:
     def __init__(self, name, pos, rew):     # Position (Y, X)
@@ -83,36 +96,26 @@ class Arena_Dict:
 arena_dict = {
     "1.png" : Arena_Dict(
         (2,2), 
-        [Exit("L", (1,0), args.default_reward),
-        Exit("R", (1,4), args.better_reward)]),
+        [Exit(  "L",    (1,0), args.default_reward),
+        Exit(   "R",    (1,4), args.better_reward)]),
     "2.png" : Arena_Dict(
         (3,3), 
-        [Exit("LL", (4,1), args.better_reward),
-        Exit("LR", (0,1), args.default_reward),
-        Exit("RL", (0,5), args.default_reward),
-        Exit("RR", (4,5), args.default_reward)]),
+        [Exit(  "LL",   (4,1), args.better_reward),
+        Exit(   "LR",   (0,1), args.default_reward),
+        Exit(   "RL",   (0,5), args.default_reward),
+        Exit(   "RR",   (4,5), args.default_reward)]),
     "3.png" : Arena_Dict(
         (4,4), 
-        [Exit("LLL", (6,3), args.default_reward),
-        Exit("LLR", (6,1), args.default_reward),
-        Exit("LRL", (0,1), args.default_reward),
-        Exit("LRR", (0,3), args.default_reward),
-        Exit("RLL", (0,5), args.better_reward),
-        Exit("RLR", (0,7), args.default_reward),
-        Exit("RRL", (6,7), args.default_reward),
-        Exit("RRR", (6,5), args.default_reward)])}
+        [Exit(  "LLL",  (6,3), args.default_reward),
+        Exit(   "LLR",  (6,1), args.default_reward),
+        Exit(   "LRL",  (0,1), args.default_reward),
+        Exit(   "LRR",  (0,3), args.default_reward),
+        Exit(   "RLL",  (0,5), args.better_reward),
+        Exit(   "RLR",  (0,7), args.default_reward),
+        Exit(   "RRL",  (6,7), args.default_reward),
+        Exit(   "RRR",  (6,5), args.default_reward)])}
 
 
-
-import torch
-from torch import nn
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-
-
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE" # Without this, pyplot crashes the kernal
 
 already_done = False 
 try:    os.chdir("triple_t_maze")
@@ -126,20 +129,17 @@ if args.id != 0:
         os.mkdir(folder + "/predictions")
     except:
         already_done = True
-
-def new_text(string):
-    print(string + "\n")
-    
-new_text("\nID: {}_{}.\nDevice: {}.".format(args.explore_type, str(args.id).zfill(3), device))
+        
+print("\nID: {}_{}.\nDevice: {}.\n".format(args.explore_type, str(args.id).zfill(3), device))
 
 
 
 # Monitor GPU memory.
 def get_free_mem(string = ""):
-    #r = torch.cuda.memory_reserved(0)
-    #a = torch.cuda.memory_allocated(0)
-    #f = r-a  # free inside reserved
-    #print("\n{}: {}.\n".format(string, f))
+    r = torch.cuda.memory_reserved(0)
+    a = torch.cuda.memory_allocated(0)
+    f = r-a  # free inside reserved
+    print("\n{}: {}.\n".format(string, f))
     pass 
 
 # Remove from GPU memory.
@@ -148,6 +148,8 @@ def delete_these(verbose = False, *args):
     del args
     #torch.cuda.empty_cache()
     if(verbose): get_free_mem("After deleting")
+    
+    
     
 def shape_out(layer, shape_in):
     example = torch.zeros(shape_in)
@@ -209,7 +211,6 @@ def add_discount(rewards, GAMMA = .99):
 
 
 # Track seconds starting right now. 
-import datetime
 start_time = datetime.datetime.now()
 def reset_start_time():
     global start_time
@@ -222,9 +223,6 @@ def duration():
   
 
 # How to save plots.
-from matplotlib import pyplot as plt, font_manager as fm
-import shutil
-
 def remove_folder(folder):
     files = os.listdir("saves")
     if(folder not in files): return
@@ -239,7 +237,6 @@ def delete_with_name(name, subfolder = "plots"):
         if(file.startswith(name)):
             os.remove(folder + "/{}/{}".format(subfolder, file))
             
-from itertools import accumulate
 def divide_arenas(epochs, here = plt):
     sums = list(accumulate(args.epochs_per_arena))
     x = [e for e in epochs if e in sums]
@@ -249,39 +246,45 @@ def divide_arenas(epochs, here = plt):
 
 
 # Plot random predictions
-from PIL import Image
-from random import choice
-from math import degrees
-def plot_some_predictions(args, images, pred_next_images, actions, masks, steps):
+def norm_speed_to_speed(args, s):
+    s = args.min_speed + ((s + 1)/2) * \
+        (args.max_speed - args.min_speed)
+    s = round(s)
+    return(s)
+    
+def plot_some_predictions(args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, steps):
     pred_images = []
     for ex in range(args.predictions_to_plot):
         batch_num = choice([i for i in range(actions.shape[0])])
         step_num =  choice([i for i in range(actions.shape[1] - args.lookahead - 1) if masks[batch_num, i] == 1])
         image_plot = (images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
-        pred_next_image_plot = (pred_next_images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
         next_image_plot = (images[batch_num,step_num+args.lookahead,:,:,:-1].cpu().detach() + 1) / 2
+        next_speed = norm_speed_to_speed(args, speeds[batch_num, step_num+args.lookahead].cpu().detach().item())
+        
+        pred_next_image_plot = (pred_next_images[batch_num,step_num,:,:,:-1].cpu().detach() + 1) / 2
+        pred_next_speed = norm_speed_to_speed(args, pred_next_speeds[batch_num, step_num].cpu().detach().item())
+        
         yaws = [] ; spes = []
         for i in range(args.lookahead):
             yaw = actions[batch_num,step_num+i,0].item() * args.max_yaw_change
             yaw = round(degrees(yaw))
-            spe = args.min_speed + ((actions[batch_num,step_num+i,1].item() + 1)/2) * \
-                (args.max_speed - args.min_speed)
-            spe = round(spe)
+            spe = norm_speed_to_speed(args, actions[batch_num,step_num+i,1].item() )
             yaws.append(yaw)
             spes.append(spe)
+            
         fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
         ax1.title.set_text("Before")
         ax1.imshow(image_plot)
         ax1.axis('off')
-        ax2.title.set_text("Prediction")
+        ax2.title.set_text("Prediction: {} speed".format(pred_next_speed))
         ax2.imshow(pred_next_image_plot)
         ax2.axis('off')
-        ax3.title.set_text("After")
+        ax3.title.set_text("After: {} speed".format(next_speed))
         ax3.imshow(next_image_plot)
         ax3.axis('off')
         title = ""
         for i in range(args.lookahead):
-            title += "Step {}: Action: {} degrees, {} speed".format(step_num+i, yaws[i], spes[i])
+            title += "Step {} action: {} degrees, {} speed".format(step_num+i, yaws[i], spes[i])
             if(i < args.lookahead): title += "\n"
         fig.suptitle(title)
         fig.tight_layout()
@@ -293,6 +296,8 @@ def plot_some_predictions(args, images, pred_next_images, actions, masks, steps)
     for i, image in enumerate(pred_images):
         new_image.paste(image, (i*image.size[0], 0))
     new_image.save("{}/predictions/{}.png".format(folder, str(steps).zfill(6)))
+
+
 
 # How to plot an episode's rewards.
 def plot_rewards(rewards):
@@ -306,6 +311,8 @@ def plot_rewards(rewards):
     plt.show()
     #save_plot("rewards")
     plt.close()
+    
+    
     
 # How to plot cumulative rewards.
 def plot_cumulative_rewards(rewards, punishments, folder = folder, name = "", min_max = (0,0)):
@@ -327,6 +334,7 @@ def plot_cumulative_rewards(rewards, punishments, folder = folder, name = "", mi
     plt.close()
     
     
+    
 def get_x_y(losses, too_long = None):
     x = [i for i in range(len(losses)) if losses[i] != None]
     y = [l for l in losses if l != None]
@@ -339,6 +347,7 @@ def normalize(this):
     else:
         this = [2*((i - min(this)) / (max(this) - min(this)))-1 for i in this]
     return(this)
+
 
 
 # How to plot extrinsic vs intrinsic.
@@ -386,6 +395,8 @@ def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, 
     plt.title("Normalized average Extrinsic vs Intrinsic Rewards")
     save_plot("ext_int_normalized" + ("_{}".format(name) if name != "" else ""), folder)
     plt.close()
+    
+    
     
 # Compare rewards to curiosity.
 def plot_curiosity(rewards, curiosity, masks):
@@ -520,11 +531,6 @@ def plot_which(which, folder = folder, name = ""):
 
 
 
-
-
-      
-  
-  
 # How to save/load agent
 
 def save_agent(agent, suf = ""):
@@ -538,5 +544,5 @@ def load_agent(agent, folder, suf = "last"):
     return(agent)
 
 if args.id != 0:
-    new_text("units.py loaded.")
+    print("units.py loaded.")
 # %%

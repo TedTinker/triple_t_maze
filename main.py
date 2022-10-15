@@ -1,17 +1,17 @@
 #%%
 
-from utils import args, new_text, already_done, folder
+from utils import args, already_done, folder
 from train import Trainer
 from itertools import accumulate
 
 if(already_done):
-    new_text("\n\n{} already done training and getting positions!".format(folder))
+    print("\n\n{} already done training and getting positions!".format(folder))
 
 else:
     trainer = Trainer(args)
     trainer.train()
     
-    new_text("\n\n{} finished training!".format(folder))
+    print("\n\n{} finished training!".format(folder))
 
     import os 
     import torch
@@ -50,4 +50,4 @@ else:
     torch.save((trainer.args.explore_type, pos_dict), folder + "/pos_dict.pt")
     torch.save(args, folder + "/args.pt")
 
-    new_text("\n\n{} finished getting positions!".format(folder))
+    print("\n\n{} finished getting positions!".format(folder))

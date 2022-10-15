@@ -18,7 +18,7 @@ from itertools import chain
 import torch
 
 # When I import this, it tries using provided parameters for utils' args.
-from utils import arena_dict, new_text, \
+from utils import arena_dict, \
     plot_rewards, plot_losses, plot_exits, plot_extrinsic_intrinsic, plot_which, plot_cumulative_rewards
 
 
@@ -223,6 +223,8 @@ def make_end_pics(order):
     ent_min_max = get_min_max("ent", plot_dict_list)
     trans_min_max, alpha_min_max, actor_min_max, critic1_min_max, critic2_min_max = get_min_max("losses", plot_dict_list)
     
+    print("\n\nGot plot mins/maxes...")
+    
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
@@ -266,6 +268,7 @@ def make_end_pics(order):
             new_image.paste(image, (0, i*image.size[1]))
         new_image.save("saves/all_{}_plots.png".format(training_name))
         os.rmdir(new_folder)
+        print("Done with {}...".format(training_name))
     
     # Predictions
     for training_name in order:
@@ -335,7 +338,7 @@ def make_together_pic(order):
 
 if(args.explore_type[0] != "("):
     plot_all_positions(args.explore_type)
-    new_text("\n\nDone with {}!".format(args.explore_type))
+    print("\n\nDone with {}!".format(args.explore_type))
 else:
     order = args.explore_type[1:-1]
     order = order.split("+")
@@ -348,11 +351,11 @@ else:
             rows.append(row) ; row = []
     order = rows
     make_end_pics(order)
-    new_text("\n\nDone with end pics...")
+    print("\n\nDone with end pics...")
     make_together_pic(order)
-    new_text("\n\nDone with together pics...")
+    print("\n\nDone with together pic...")
     make_mega_vid(order)
-    new_text("\n\nDone!")
+    print("\n\nDone!")
 
 
 
