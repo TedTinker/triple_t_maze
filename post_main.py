@@ -215,6 +215,8 @@ def make_end_pics(order):
     for folder in all_folders:
         plot_dict_list.append(torch.load("saves/" + folder + "/plot_dict.pt"))
         
+    print("\n\nGetting plot mins/maxes...")
+        
     exits_rolled_min_max = get_min_max("exits_rolled", plot_dict_list)
     rew_min_max = get_min_max("rew", plot_dict_list, True)
     pun_min_max = get_min_max("pun", plot_dict_list, True)
@@ -340,6 +342,7 @@ if(args.explore_type[0] != "("):
     plot_all_positions(args.explore_type)
     print("\n\nDone with {}!".format(args.explore_type))
 else:
+    print("Starting!")
     order = args.explore_type[1:-1]
     order = order.split("+")
     if(order[-1] != "break"): order.append("break")

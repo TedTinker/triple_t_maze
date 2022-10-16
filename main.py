@@ -1,12 +1,28 @@
 #%%
 
+import datetime 
+start_time = datetime.datetime.now()
+
+def reset_start_time():
+    global start_time
+    start_time = datetime.datetime.now()
+    
+def duration():
+    global start_time
+    change_time = datetime.datetime.now() - start_time
+    change_time = change_time - datetime.timedelta(microseconds=change_time.microseconds)
+    return(change_time)
+
+
+
 from utils import args, already_done, folder
 from train import Trainer
 from itertools import accumulate
 
+
+
 if(already_done):
     print("\n\n{} already done training and getting positions!".format(folder))
-
 else:
     trainer = Trainer(args)
     trainer.train()
@@ -51,3 +67,4 @@ else:
     torch.save(args, folder + "/args.pt")
 
     print("\n\n{} finished getting positions!".format(folder))
+    print("Duration: {}".format(duration()))

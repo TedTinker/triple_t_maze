@@ -113,8 +113,10 @@ class Arena():
                 if((self.arena_map[loc] == [255]).all()):
                     if(not self.exits.loc[self.exits["Position"] == loc].empty):
                         row = self.exits.loc[self.exits["Position"] == loc]
+                        reward = row["Reward"].values[0]
+                        print("\n\n{}\n\n".format(reward))
                         end_pos = ((pos[0]-.5, pos[0] + .5), (pos[1] - .5, pos[1] + .5))
-                        self.ends[row["Name"].values[0]] = (end_pos, int(row["Reward"].values[0]))
+                        self.ends[row["Name"].values[0]] = (end_pos, row["Reward"].values[0])
                 else:
                     ors = p.getQuaternionFromEuler([0,0,0])
                     color = self.arena_map[loc][::-1] / 255

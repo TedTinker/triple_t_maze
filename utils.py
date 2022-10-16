@@ -150,6 +150,19 @@ def delete_these(verbose = False, *args):
     #torch.cuda.empty_cache()
     if(verbose): get_free_mem("After deleting")
     
+# Track seconds starting right now. 
+start_time = datetime.datetime.now()
+
+def reset_start_time():
+    global start_time
+    start_time = datetime.datetime.now()
+    
+def duration():
+    global start_time
+    change_time = datetime.datetime.now() - start_time
+    change_time = change_time - datetime.timedelta(microseconds=change_time.microseconds)
+    return(change_time)
+    
     
     
 def shape_out(layer, shape_in):
@@ -208,18 +221,6 @@ def add_discount(rewards, GAMMA = .99):
     for i, r in enumerate(rewards[:-1]):
         rewards[i] += d*(GAMMA)**(len(rewards) - i)
     return(rewards)
-
-
-
-# Track seconds starting right now. 
-start_time = datetime.datetime.now()
-def reset_start_time():
-    global start_time
-    start_time = datetime.datetime.now()
-def duration():
-    change_time = datetime.datetime.now() - start_time
-    change_time = change_time - datetime.timedelta(microseconds=change_time.microseconds)
-    return(change_time)
   
   
 
