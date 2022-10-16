@@ -8,6 +8,7 @@ import torch.optim as optim
 
 import numpy as np
 from math import log
+from copy import deepcopy
 
 from utils import args, plot_curiosity, plot_some_predictions
 from buffer import RecurrentReplayBuffer
@@ -94,28 +95,25 @@ class Agent:
         pred_next_images, pred_next_speeds = self.transitioner(images[:,:-self.args.lookahead].detach(), speeds[:,:-self.args.lookahead].detach(), sequential_actions.detach())
         
         flat_images = images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:]
-        flat_images = flat_images.flatten()
+        flat_images = flat_images.flatten(2)
         flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
-        flat_pred_images = flat_pred_images.flatten()
+        flat_pred_images = flat_pred_images.flatten(2)
         
         flat_speeds = speeds[:,self.args.lookahead:]*masks.detach()[:,self.args.lookahead-1:]
-        flat_speeds = flat_speeds.flatten()
+        flat_speeds = flat_speeds
         flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
-        flat_pred_speeds = flat_pred_speeds.flatten()
+        flat_pred_speeds = flat_pred_speeds
         
-        flat_real = torch.cat([flat_images, flat_speeds])
-        flat_pred = torch.cat([flat_pred_images, flat_pred_speeds])
+        flat_real = torch.cat([flat_images, flat_speeds], dim = -1)
+        flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
         
         #trans_loss = F.mse_loss(flat_pred, flat_real, reduction='sum')
-        trans_loss = F.kl_div(
+        divergence = F.kl_div(
             F.log_softmax(flat_pred, dim=-1), 
             F.log_softmax(flat_real, dim=-1), 
-            reduction="sum", log_target=True) # If this works, can I also use it for curiosity? Save time.
+            reduction="none", log_target=True) # If this works, can I also use it for curiosity? Save time.
         
-        print("\nIn trans_loss:")
-        print(trans_loss.shape)
-        print()
-        
+        trans_loss = torch.sum(divergence.clone())
         self.trans_optimizer.zero_grad()
         trans_loss.backward()
         self.trans_optimizer.step()
@@ -125,14 +123,13 @@ class Agent:
             encoded, _ = self.transitioner.just_encode(images.detach(), speeds.detach())
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
-            
+        
+        divergence = sum([divergence[:,:,i] for i in range(divergence.shape[-1])])
         if(self.args.eta == None):
-            curiosity = self.eta * self.transitioner.DKL(
-                images, speeds, sequential_actions, masks)
+            curiosity = self.eta * divergence.unsqueeze(-1)
             self.eta = self.eta * self.args.eta_rate
         else:
-            curiosity = self.args.eta * self.transitioner.DKL(
-                images, speeds, sequential_actions, masks)
+            curiosity = self.args.eta * divergence.unsqueeze(-1)
             self.args.eta = self.args.eta * self.args.eta_rate
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False

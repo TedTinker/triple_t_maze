@@ -125,7 +125,7 @@ class Trainer():
         while(True):
             E.update()
             self.e += 1
-            self.epoch(plot_predictions = self.e % self.args.show_and_save == 0)
+            self.epoch(plot_predictions = self.e % self.args.show_and_save_pred == 0)
             if(self.e % self.args.show_and_save == 0): 
                 save_agent(self.agent, suf = self.e)
                 

@@ -145,24 +145,6 @@ class Transitioner(nn.Module):
         delete_these(False, x, actions)
         return(next_image, next_speed)
 
-    def DKL(self, images, speeds, actions, masks):
-        next_images = images[:, self.args.lookahead:] ; images = images[:, :-self.args.lookahead]
-        next_speeds = speeds[:, self.args.lookahead:] ; speeds = speeds[:, :-self.args.lookahead]
-        with torch.no_grad(): 
-            pred_next_images, pred_next_speeds = self(images.detach(), speeds.detach(), actions.detach())
-        predictions = torch.cat([pred_next_images.flatten(2), pred_next_speeds], dim = -1)
-        targets = torch.cat([next_images.flatten(2), next_speeds], dim = -1)
-        print("\nIn curiosity:")
-        divergence = F.kl_div(
-            F.log_softmax(predictions * masks[:,self.args.lookahead-1:], dim=-1), 
-            F.log_softmax(targets * masks[:,self.args.lookahead-1:], dim=-1), 
-            reduction="none", log_target=True)
-        print(divergence.shape)
-        divergence = sum([divergence[:,:,i] for i in range(divergence.shape[-1])])
-        print(divergence.shape)
-        print()
-        return(divergence.unsqueeze(-1))
-
 
 
 class Actor(nn.Module):

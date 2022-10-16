@@ -1,86 +1,19 @@
-entropy_0_curious_0 : --target_entropy -5  	--eta 0 
+entropy_0_curious_0 : --target_entropy -5  	--eta 0 --alpha 0
 entropy_1_curious_0 : --target_entropy -2 	--eta 0 
 entropy_2_curious_0 : --target_entropy -1 	--eta 0 
 entropy_3_curious_0 : --target_entropy 0 	--eta 0 
 
-entropy_0_curious_1 : --target_entropy -5  	--eta 3
+entropy_0_curious_1 : --target_entropy -5  	--eta 3 --alpha 0
 entropy_1_curious_1 : --target_entropy -2 	--eta 3 
 entropy_2_curious_1 : --target_entropy -1 	--eta 3 
 entropy_3_curious_1 : --target_entropy 0 	--eta 3 
 
-entropy_0_curious_2 : --target_entropy -5  	--eta 6 
+entropy_0_curious_2 : --target_entropy -5  	--eta 6 --alpha 0
 entropy_1_curious_2 : --target_entropy -2 	--eta 6 
 entropy_2_curious_2 : --target_entropy -1 	--eta 6 
 entropy_3_curious_2 : --target_entropy 0 	--eta 6 
 
-entropy_0_curious_3 : --target_entropy -5  	--eta 10 
+entropy_0_curious_3 : --target_entropy -5  	--eta 10 --alpha 0 
 entropy_1_curious_3 : --target_entropy -2 	--eta 10 
 entropy_2_curious_3 : --target_entropy -1 	--eta 10 
 entropy_3_curious_3 : --target_entropy 0 	--eta 10 
-
-
-
-
-entropy_0_curious_0_hr : --target_entropy -5  --eta 0 --better_reward 5
-entropy_1_curious_0_hr : --target_entropy -2 	--eta 0 --better_reward 5
-entropy_2_curious_0_hr : --target_entropy -1 	--eta 0 --better_reward 5
-entropy_3_curious_0_hr : --target_entropy 0 	--eta 0 --better_reward 5
-
-entropy_0_curious_1_hr : --target_entropy -5  --eta 3 --better_reward 5
-entropy_1_curious_1_hr : --target_entropy -2 	--eta 3 --better_reward 5
-entropy_2_curious_1_hr : --target_entropy -1 	--eta 3 --better_reward 5
-entropy_3_curious_1_hr : --target_entropy 0 	--eta 3 --better_reward 5
-
-entropy_0_curious_2_hr : --target_entropy -5  --eta 6 --better_reward 5
-entropy_1_curious_2_hr : --target_entropy -2 	--eta 6 --better_reward 5
-entropy_2_curious_2_hr : --target_entropy -1 	--eta 6 --better_reward 5
-entropy_3_curious_2_hr : --target_entropy 0 	--eta 6 --better_reward 5
-
-entropy_0_curious_3_hr : --target_entropy -5  --eta 10 --better_reward 5
-entropy_1_curious_3_hr : --target_entropy -2 	--eta 10 --better_reward 5
-entropy_2_curious_3_hr : --target_entropy -1 	--eta 10 --better_reward 5
-entropy_3_curious_3_hr : --target_entropy 0 	--eta 10 --better_reward 5
-
-
-
-entropy_0_curious_0_l_2 : --target_entropy -5  	--eta 0 	--lookahead 2
-entropy_1_curious_0_l_2 : --target_entropy -2 	--eta 0  	--lookahead 2
-entropy_2_curious_0_l_2 : --target_entropy -1 	--eta 0  	--lookahead 2
-entropy_3_curious_0_l_2 : --target_entropy 0 		--eta 0  	--lookahead 2
-
-entropy_0_curious_1_l_2 : --target_entropy -5  	--eta 3 	--lookahead 2
-entropy_1_curious_1_l_2 : --target_entropy -2 	--eta 3  	--lookahead 2
-entropy_2_curious_1_l_2 : --target_entropy -1 	--eta 3  	--lookahead 2
-entropy_3_curious_1_l_2 : --target_entropy 0 		--eta 3  	--lookahead 2
-
-entropy_0_curious_2_l_2 : --target_entropy -5  	--eta 6  	--lookahead 2
-entropy_1_curious_2_l_2 : --target_entropy -2 	--eta 6  	--lookahead 2
-entropy_2_curious_2_l_2 : --target_entropy -1 	--eta 6  	--lookahead 2
-entropy_3_curious_2_l_2 : --target_entropy 0 		--eta 6  	--lookahead 2
-
-entropy_0_curious_3_l_2 : --target_entropy -5  	--eta 10  	--lookahead 2
-entropy_1_curious_3_l_2 : --target_entropy -2 	--eta 10  	--lookahead 2
-entropy_2_curious_3_l_2 : --target_entropy -1 	--eta 10  	--lookahead 2
-entropy_3_curious_3_l_2 : --target_entropy 0 		--eta 10  	--lookahead 2
-
-
-
-entropy_0_curious_0_l_3 : --target_entropy -5  	--eta 0 	--lookahead 3
-entropy_1_curious_0_l_3 : --target_entropy -2 	--eta 0  	--lookahead 3
-entropy_2_curious_0_l_3 : --target_entropy -1 	--eta 0  	--lookahead 3
-entropy_3_curious_0_l_3 : --target_entropy 0 		--eta 0  	--lookahead 3
-
-entropy_0_curious_1_l_3 : --target_entropy -5  	--eta 3 	--lookahead 3
-entropy_1_curious_1_l_3 : --target_entropy -2 	--eta 3  	--lookahead 3
-entropy_2_curious_1_l_3 : --target_entropy -1 	--eta 3  	--lookahead 3
-entropy_3_curious_1_l_3 : --target_entropy 0 		--eta 3  	--lookahead 3
-
-entropy_0_curious_2_l_3 : --target_entropy -5  	--eta 6  	--lookahead 3
-entropy_1_curious_2_l_3 : --target_entropy -2 	--eta 6  	--lookahead 3
-entropy_2_curious_2_l_3 : --target_entropy -1 	--eta 6  	--lookahead 3
-entropy_3_curious_2_l_3 : --target_entropy 0 		--eta 6  	--lookahead 3
-
-entropy_0_curious_3_l_3 : --target_entropy -5  	--eta 10  	--lookahead 3
-entropy_1_curious_3_l_3 : --target_entropy -2 	--eta 10  	--lookahead 3
-entropy_2_curious_3_l_3 : --target_entropy -1 	--eta 10  	--lookahead 3
-entropy_3_curious_3_l_3 : --target_entropy 0 		--eta 10  	--lookahead 3
