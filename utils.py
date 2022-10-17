@@ -31,7 +31,7 @@ parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
 parser.add_argument("--gamma",              type=float, default = .9)  # For discounting reward
 parser.add_argument("--default_reward",     type=float, default = -1)#1)
-parser.add_argument("--better_reward",      type=float, default = 1)#((.5, .5),(.5, 3.5)))
+parser.add_argument("--better_reward",      type=float, default = ((.5, .5),(.5, 3.5)))
 
 # Agent
 parser.add_argument('--body_size',          type=float, default = 2)    
