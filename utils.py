@@ -506,7 +506,7 @@ def plot_exits(exits, folder = folder, name = "", min_max = (0,0)):
     
 # How to plot kinds of victory.
 def plot_which(which, folder = folder, name = ""):
-    which = [(w, r) if type(r) in [int, float] else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
+    which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
     #which = [w[0] + ", " + str(w[1]) for w in which]
     
     which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]

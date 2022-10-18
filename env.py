@@ -51,7 +51,6 @@ class Env():
         ors = p.getQuaternionFromEuler([pi/2, 0, yaw])
         p.resetBasePositionAndOrientation(self.body.num, pos, ors, physicsClientId = self.arena.physicsClient)
         
-
     def get_obs(self):
         image_size = self.args.image_size
         x, y = cos(self.body.yaw), sin(self.body.yaw)

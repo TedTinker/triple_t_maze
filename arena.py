@@ -181,7 +181,7 @@ class Arena():
                 col = True
                 which = (end_name, end_reward)
                 reward = end_reward
-        if(type(reward) in (int, float)): pass
+        if(type(reward) != tuple): pass
         else:
             weights = [w for w, r in reward]
             reward_index = choices([i for i in range(len(reward))], weights = weights)[0]
