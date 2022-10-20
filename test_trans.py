@@ -42,6 +42,8 @@ def plot_predition(actions, image, predicted_image, predicted_speed, next_image,
     plt.close()
     print()
 
+
+
 def play(folder, suf, arena_name):
     args = torch.load(folder + "/args.pt")
     agent = Agent(args = args)
@@ -73,7 +75,7 @@ def play(folder, suf, arena_name):
                 torch_image.detach(), 
                 torch_speed.detach(), 
                 action_tensor.detach(), 
-                hidden)
+                hidden if hidden == None else (hidden[0].detach(), hidden[1].detach()))
             predicted_image = predicted_image.cpu().detach().squeeze(0).squeeze(0)
             predicted_speed = predicted_speed.cpu().detach().squeeze(0).squeeze(0)
             
@@ -85,7 +87,7 @@ def play(folder, suf, arena_name):
                 _, _, _ = env.step_by_hand(yaw, speed, verbose = False)
             real_image, real_speed = env.get_obs()
             env.reposition(old_pos, old_yaw)           
-            predicted_speed = norm_speed_to_speed(args, predicted_speed)
+            predicted_speed = norm_speed_to_speed(args, predicted_speed.item())
             plot_predition(
                 actions_copy, 
                 (actual_image[:,:,:-1]+1)/2, 
@@ -103,5 +105,5 @@ def play(folder, suf, arena_name):
         if(speed == ""): speed = 1
         _, _, _ = env.step_by_hand(float(yaw), float(speed))
             
-play(r"/home/ted/Desktop/examples/bad_exits_lookahead_2/entropy_2_curious_2_001", "04500", "3")
+play(r"/home/ted/Desktop/examples/bad_exits_long/entropy_2_curious_2_001", "07000", "3")
 # %%

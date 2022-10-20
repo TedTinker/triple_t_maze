@@ -10,7 +10,7 @@ import numpy as np
 from math import log
 from copy import deepcopy
 
-from utils import args, plot_curiosity, plot_some_predictions
+from utils import args, device, plot_curiosity, plot_some_predictions
 from buffer import RecurrentReplayBuffer
 from models import Transitioner, Actor, Critic
 
@@ -111,7 +111,7 @@ class Agent:
         divergence = F.kl_div(
             F.log_softmax(flat_pred, dim=-1), 
             F.log_softmax(flat_real, dim=-1), 
-            reduction="none", log_target=True) # If this works, can I also use it for curiosity? Save time.
+            reduction="none", log_target=True) # Using this loss function doesn't make much sense, but it works, so I'm keeping it.
         
         trans_loss = torch.sum(divergence.clone())
         self.trans_optimizer.zero_grad()
@@ -139,7 +139,7 @@ class Agent:
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()
-        curiosity = torch.cat([curiosity, torch.zeros([curiosity.shape[0], self.args.lookahead-1, 1])], dim = 1)
+        curiosity = torch.cat([curiosity, torch.zeros([curiosity.shape[0], self.args.lookahead-1, 1]).to(device)], dim = 1)
         rewards = torch.cat([rewards, curiosity], -1)
                 
         # Train critics
