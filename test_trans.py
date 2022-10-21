@@ -105,5 +105,5 @@ def play(folder, suf, arena_name):
         if(speed == ""): speed = 1
         _, _, _ = env.step_by_hand(float(yaw), float(speed))
             
-play(r"/home/ted/Desktop/examples/bad_exits_long/entropy_2_curious_2_001", "07000", "3")
+play(r"/home/ted/Desktop/examples/bad_exits_l2_long/entropy_2_curious_2_001", "07000", "3")
 # %%

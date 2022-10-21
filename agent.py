@@ -107,11 +107,12 @@ class Agent:
         flat_real = torch.cat([flat_images, flat_speeds], dim = -1)
         flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
         
-        #trans_loss = F.mse_loss(flat_pred, flat_real, reduction='sum')
         divergence = F.kl_div(
             F.log_softmax(flat_pred, dim=-1), 
             F.log_softmax(flat_real, dim=-1), 
             reduction="none", log_target=True) # Using this loss function doesn't make much sense, but it works, so I'm keeping it.
+        
+        #divergence = F.mse_loss(flat_pred, flat_real, reduction="none")
         
         trans_loss = torch.sum(divergence.clone())
         self.trans_optimizer.zero_grad()
@@ -124,6 +125,7 @@ class Agent:
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
         
+        # With kl_div, eta 3, 6, and 10. With mse, eta .003, .006, and .01
         divergence = sum([divergence[:,:,i] for i in range(divergence.shape[-1])])
         if(self.args.eta == None):
             curiosity = self.eta * divergence.unsqueeze(-1)
