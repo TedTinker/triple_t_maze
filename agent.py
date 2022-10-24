@@ -178,7 +178,7 @@ class Agent:
         # Train eta
         if(self.args.eta == None):
             """
-            eta_loss = "I don't know yet"
+            eta_loss = "If testing a loss-funciton for curiosity's eta, put it here"
             self.eta_optimizer.zero_grad()
             eta_loss.backward()
             self.eta_optimizer.step()
