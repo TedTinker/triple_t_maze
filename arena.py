@@ -33,7 +33,7 @@ class to_push:
         for i in range(len(self.rew)):
             if(self.rew[i] > 0):
                 self.rew[i] = self.rew[i]* (self.args.reward_scaling**i)
-        self.rew = add_discount(self.rew, self.args.gamma)
+        self.rew = add_discount(self.rew, self.args.gamma) # I'm not sure I should have this?
         
     def push(self, memory, agent):
         for _ in range(len(self.rew)):
@@ -77,6 +77,21 @@ def get_physics(GUI, w, h):
     return(physicsClient)
 
 
+def enable_opengl():
+    import pkgutil
+    egl = pkgutil.get_loader('eglRenderer')
+    import pybullet_data
+
+    p.connect(p.DIRECT)
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    plugin = p.loadPlugin(egl.get_filename(), "_eglRendererPlugin")
+    # print("plugin=", plugin)
+
+    p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+
+
+
 
 # Get arena from image.
 import numpy as np
@@ -86,6 +101,7 @@ from string import ascii_uppercase as LETTERS
 
 class Arena():
     def __init__(self, arena_name, args = args, GUI = False):
+        #enable_opengl()
         self.args = args
         self.arena_name = arena_name
         self.start = arena_dict[arena_name + ".png"].start
@@ -196,7 +212,7 @@ class Arena():
         return(col)
 
 if __name__ == "__main__":
-    arena = Arena(arena_name = "1", GUI = True)
+    arena = Arena(arena_name = "3", GUI = True)
     arena.start_arena()
     
 print("arena.py loaded.")

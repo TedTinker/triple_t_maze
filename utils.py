@@ -51,7 +51,7 @@ parser.add_argument('--trans_lr',           type=float, default = .001)
 parser.add_argument('--actor_lr',           type=float, default = .001) 
 parser.add_argument('--critic_lr',          type=float, default = .001) 
 parser.add_argument('--alpha_lr',           type=float, default = .005) 
-parser.add_argument('--eta_lr',             type=float, default = .005)     # Not yet implemented
+parser.add_argument('--eta_lr',             type=float, default = .005)     # Not implemented
 
 # Memory buffer
 parser.add_argument('--capacity',           type=int,   default = 300)
@@ -95,6 +95,10 @@ class Arena_Dict:
             columns = ["Name", "Position", "Reward"])
         
 arena_dict = {
+    "t.png" : Arena_Dict(
+        (3, 2),
+        [Exit(  "L",    (1,0), args.default_reward),
+        Exit(   "R",    (1,4), ((.5, .5), (.5, 3.5)))]),
     "1.png" : Arena_Dict(
         (2,2), 
         [Exit(  "L",    (1,0), args.default_reward),

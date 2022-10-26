@@ -142,7 +142,7 @@ class Agent:
         extrinsic = torch.mean(rewards*masks.detach()).item()
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()
         curiosity = torch.cat([curiosity, torch.zeros([curiosity.shape[0], self.args.lookahead-1, 1]).to(device)], dim = 1)
-        rewards = torch.cat([rewards, curiosity], -1)
+        rewards += curiosity
                 
         # Train critics
         next_action, log_pis_next = self.actor.evaluate(next_encoded.detach())

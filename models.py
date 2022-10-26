@@ -213,7 +213,7 @@ class Critic(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(self.args.hidden_size*2, self.args.hidden_size*2),
             nn.LeakyReLU(),
-            nn.Linear(self.args.hidden_size*2, 2))
+            nn.Linear(self.args.hidden_size*2, 1))
 
         self.lin.apply(init_weights)
         self.to(device)
