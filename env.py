@@ -43,6 +43,7 @@ class Env():
     def reset(self):
         self.resets += 1; self.steps = 0
         self.body = self.arena.start_arena()
+        self.prev_action = torch.tensor([0, 0])
         return(self.get_obs())
     
     def reposition(self, pos, yaw):
@@ -75,7 +76,7 @@ class Env():
         rgbd = torch.from_numpy(rgbd).float()
         rgbd = resize(rgbd.permute(-1,0,1), (image_size, image_size)).permute(1,2,0)
         spe = torch.tensor(self.body.spe).unsqueeze(0)
-        return(rgbd, spe)
+        return(rgbd, spe, self.prev_action.float())
 
     def render(self, view = "body"):
         if(view == "body" or "both"):
@@ -146,10 +147,11 @@ class Env():
   
     def step(self, agent):
         self.steps += 1
-        image, speed = self.get_obs()
+        image, speed, prev_action = self.get_obs()
         with torch.no_grad():
             self.body.action, self.body.hidden = agent.act(
-                image, speed, self.body.hidden)
+                image, speed, prev_action, self.body.hidden)
+        self.pred_action = self.body.action
         yaw = -self.body.action[0].item() * self.args.max_yaw_change
         spe = self.args.min_speed + ((self.body.action[1].item() + 1)/2) * \
             (self.args.max_speed - self.args.min_speed)
@@ -164,7 +166,7 @@ class Env():
         if(not end):  end = self.steps >= self.args.max_steps
         exit = which[0] != "FAIL"
         if(end and not exit): reward = -1
-        next_image, next_speed = self.get_obs()
+        next_image, next_speed, _ = self.get_obs()
 
         self.body.to_push.add(
             image.cpu(), speed.cpu(), 

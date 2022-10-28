@@ -55,8 +55,9 @@ class Agent:
     def restart_memory(self):
         self.memory = RecurrentReplayBuffer(self.args)
 
-    def act(self, image, speed, hidden = None):
-        encoded, hidden = self.transitioner.just_encode(image.unsqueeze(0), speed.unsqueeze(0), hidden)
+    def act(self, image, speed, prev_action, hidden = None):
+        encoded, hidden = self.transitioner.just_encode(
+            image.unsqueeze(0), speed.unsqueeze(0), prev_action.unsqueeze(0), hidden)
         action = self.actor.get_action(encoded).detach()
         return action, hidden
     
@@ -85,6 +86,7 @@ class Agent:
         image_masks = torch.tile(masks.unsqueeze(-1).unsqueeze(-1), (self.args.image_size, self.args.image_size, 4))
         speeds = (speeds - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
         speeds = (speeds*2)-1
+        prev_actions = torch.cat([torch.zeros(actions.shape[0], 1, actions.shape[2]), actions], dim = 1)
                             
         # Train transitioner
         sequential_actions = actions 
@@ -92,7 +94,10 @@ class Agent:
             next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
-        pred_next_images, pred_next_speeds = self.transitioner(images[:,:-self.args.lookahead].detach(), speeds[:,:-self.args.lookahead].detach(), sequential_actions.detach())
+        pred_next_images, pred_next_speeds = self.transitioner(
+            images[:,:-self.args.lookahead].detach(), 
+            speeds[:,:-self.args.lookahead].detach(), 
+            prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
         
         flat_images = images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:]
         flat_images = flat_images.flatten(2)
@@ -121,7 +126,7 @@ class Agent:
                 
         # Get encodings for other modules
         with torch.no_grad():
-            encoded, _ = self.transitioner.just_encode(images.detach(), speeds.detach())
+            encoded, _ = self.transitioner.just_encode(images.detach(), speeds.detach(), prev_actions.detach())
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
         

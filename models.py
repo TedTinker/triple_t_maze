@@ -41,9 +41,13 @@ class Transitioner(nn.Module):
         self.speed_in = nn.Sequential(
             nn.Linear(1, self.args.hidden_size),
             nn.LeakyReLU())
+        
+        self.prev_action_in = nn.Sequential(
+            nn.Linear(2, self.args.hidden_size),
+            nn.LeakyReLU()) # Not yet implemented
 
         self.lstm = nn.LSTM(
-            input_size = 2*self.args.hidden_size,
+            input_size = 3*self.args.hidden_size,
             hidden_size = self.args.lstm_size,
             batch_first = True)
 
@@ -98,6 +102,7 @@ class Transitioner(nn.Module):
         self.image_in_1.apply(init_weights)
         self.image_in_2.apply(init_weights)
         self.speed_in.apply(init_weights)
+        self.prev_action_in.apply(init_weights)
         self.lstm.apply(init_weights)
         self.encode.apply(init_weights)
         self.actions_in.apply(init_weights)
@@ -106,7 +111,7 @@ class Transitioner(nn.Module):
         self.next_speed.apply(init_weights)
         self.to(device)
 
-    def just_encode(self, image, speed, hidden = None):
+    def just_encode(self, image, speed, prev_action, hidden = None):
         image = image.to(device); speed = speed.to(device)
         if(len(image.shape) == 4):  sequence = False
         else:                       sequence = True
@@ -119,7 +124,8 @@ class Transitioner(nn.Module):
         speed = (speed - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
         speed = (speed*2)-1
         speed = self.speed_in(speed.float())
-        x = torch.cat([image, speed], -1)
+        prev_action = self.prev_action_in(prev_action.to(device))
+        x = torch.cat([image, speed, prev_action], -1)
         if(not sequence): x = x.view(x.shape[0], 1, x.shape[1])
         self.lstm.flatten_parameters()
         if(hidden == None): x, hidden = self.lstm(x)
@@ -129,11 +135,11 @@ class Transitioner(nn.Module):
         delete_these(False, image, speed, x)
         return(encoding, hidden) 
 
-    def forward(self, image, speed, actions, hidden = None):
-        actions = actions.to(device)
-        encoding, _ = self.just_encode(image, speed, hidden)
-        actions = self.actions_in(actions)
-        x = torch.cat((encoding, actions), dim=-1)
+    def forward(self, image, speed, prev_action, action, hidden = None):
+        action = action.to(device) ; prev_action = prev_action.to(device)
+        encoding, _ = self.just_encode(image, speed, prev_action, hidden)
+        action = self.actions_in(action)
+        x = torch.cat((encoding, action), dim=-1)
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
         next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
@@ -142,7 +148,7 @@ class Transitioner(nn.Module):
         next_image = next_image.permute(0, 1, 3, 4, 2)
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
-        delete_these(False, x, actions)
+        delete_these(False, x, action)
         return(next_image, next_speed)
 
 
@@ -238,6 +244,7 @@ if __name__ == "__main__":
     print(torch_summary(transitioner, 
                         ((1, 1, args.image_size, args.image_size, 4), # Image
                          (1, 1, 1),         # Speed
+                         (1, 1, 2),         # Prev action
                          (1, 1, 2))))       # Action
 
     print("\n\n")
