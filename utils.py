@@ -43,7 +43,7 @@ parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
 parser.add_argument('--lookahead',          type=int,   default = 1)
-parser.add_argument('--batch_size',         type=int,   default = 128)
+parser.add_argument('--batch_size',         type=int,   default = 2)#128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
@@ -62,7 +62,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
+parser.add_argument('--epochs_per_arena',   type=int,   default = (10, 10, 10))#(1000, 2000, 4000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -74,8 +74,8 @@ parser.add_argument("--tau",                type=float, default = .05)  # For so
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 250)
+parser.add_argument('--show_and_save',      type=int,   default = 5)#250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 5)#250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -225,6 +225,24 @@ def add_discount(rewards, GAMMA = .99):
     for i, r in enumerate(rewards[:-1]):
         rewards[i] += d*(GAMMA)**(len(rewards) - i)
     return(rewards)
+
+
+
+
+# How to save/load agent
+
+def save_agent(agent, suf = ""):
+    if(folder == None): return
+    if(type(suf) == int): suf = str(suf).zfill(5)
+    torch.save(agent.state_dict(), folder + "/agents/agent_{}.pt".format(suf))
+
+def load_agent(agent, folder, suf = "last"):
+    if(type(suf) == int): suf = str(suf).zfill(5)
+    agent.load_state_dict(torch.load(folder + "/agents/agent_{}.pt".format(suf)))
+    return(agent)
+
+if args.id != 0:
+    print("units.py loaded.")
   
   
 
@@ -317,28 +335,7 @@ def plot_rewards(rewards):
     plt.show()
     #save_plot("rewards")
     plt.close()
-    
-    
-    
-# How to plot cumulative rewards.
-def plot_cumulative_rewards(rewards, punishments, folder = folder, name = "", min_max = (0,0)):
-    total_length = len(rewards)
-    x = [i for i in range(1, total_length + 1)]
-    rewards = np.cumsum(rewards)
-    punishments = np.cumsum(punishments)
-    divide_arenas(x)
-    plt.title("Cumulative Rewards and Punishments")
-    plt.xlabel("Time")
-    plt.ylabel("Rewards/Punishments")
 
-    plt.plot(x, [0 for _ in range(total_length)], "--", color = "black", alpha = .5)
-    plt.plot(x, rewards, color = "turquoise")
-    plt.plot(x, punishments, color = "pink")
-    plt.ylim(min_max)
-
-    save_plot("cumulative" + ("_{}".format(name) if name != "" else ""), folder)
-    plt.close()
-    
     
     
 def get_x_y(losses, too_long = None):
@@ -354,201 +351,246 @@ def normalize(this):
         this = [2*((i - min(this)) / (max(this) - min(this)))-1 for i in this]
     return(this)
 
-
-
-# How to plot extrinsic vs intrinsic.
-def plot_extrinsic_intrinsic(extrinsic, intrinsic_curiosity, intrinsic_entropy, folder = folder, name = "", min_max = (0,0)):
+def get_quantiles(plot_dict_list, name):
+    lists = [plot_dict[name] for plot_dict in plot_dict_list]
+    q05 = []
+    med = []
+    q95 = []
+    for i in range(len(lists[0])):
+        mini_list = [l[i] for l in lists if l[i] != None]
+        if(mini_list == []):
+            q05.append(None)
+            med.append(None)
+            q95.append(None)
+        else:
+            q05.append(np.quantile(mini_list, .05))
+            med.append(np.quantile(mini_list, .50))
+            q95.append(np.quantile(mini_list, .95))
+    return(q05, med, q95)
     
-    ex, ey       = get_x_y(extrinsic)
-    icx, icy     = get_x_y(intrinsic_curiosity)
-    iex, iey     = get_x_y(intrinsic_entropy)
-    
-    plt.xlabel("Epochs")
-    plt.ylabel("Value")
-    
-    divide_arenas([x+1 for x in ex])
 
-    plt.axhline(y = 0, color = 'gray', linestyle = '--')
+line_transparency = .5 ; fill_transparency = .1
+def plots(plot_dict, mins_maxs, folder = folder, name = ""):
+    
+    if(type(plot_dict) == list): many = True  ; epochs = len(plot_dict[0]["rew"])
+    else:                        many = False ; epochs = len(plot_dict["rew"])
+    
+    fig, axs = plt.subplots(6, 1, figsize = (7, 30))
+    xs = [i for i in range(1, epochs + 1)]
+    
+    
+    
+    # Cumulative rewards
+    ax = axs[0]
+    if(many): 
+        low_rew, rew, high_rew = get_quantiles(plot_dict, "rew")
+        low_pun, pun, high_pun = get_quantiles(plot_dict, "pun")
+        low_rew = np.cumsum(low_rew) ; rew = np.cumsum(rew) ; high_rew = np.cumsum(high_rew)
+        low_pun = np.cumsum(low_pun) ; pun = np.cumsum(pun) ; high_pun = np.cumsum(high_pun)
+        ax.fill_between(xs, low_rew, high_rew, color = "turquoise", alpha = 2*fill_transparency)
+        ax.fill_between(xs, low_pun, high_pun, color = "pink", alpha = 2*fill_transparency)
+    else:
+        rew = plot_dict["rew"] ; rew = np.cumsum(rew)
+        pun = plot_dict["pun"] ; pun = np.cumsum(pun)
+    ax.axhline(y = 0, color = 'gray', linestyle = '--')
+    ax.plot(xs, rew, color = "turquoise", alpha = 2*line_transparency)
+    ax.plot(xs, pun, color = "pink", alpha = 2*line_transparency)
+    ax.set_xlabel("Time")
+    ax.set_ylabel("Rewards/Punishments")
+    ax.title.set_text("Cumulative Rewards and Punishments")
+    divide_arenas(xs, ax)
+    ax.set_ylim(mins_maxs[0])
+    
+    
+    
+    # Extrinsic, intrinsic
+    ax = axs[1]
+    if(many):
+        low_ext, ext, high_ext = get_quantiles(plot_dict, "ext")
+        low_cur, cur, high_cur = get_quantiles(plot_dict, "cur")
+        low_ent, ent, high_ent = get_quantiles(plot_dict, "ent")
+        low_ext_x, low_ext_y = get_x_y(low_ext) ; high_ext_x, high_ext_y = get_x_y(high_ext)
+        low_cur_x, low_cur_y = get_x_y(low_cur) ; high_cur_x, high_cur_y = get_x_y(high_cur)
+        low_ent_x, low_ent_y = get_x_y(low_ent) ; high_ent_x, high_ent_y = get_x_y(high_ent)
+        ax.fill_between(low_ext_x, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency)
+        ax.fill_between(low_cur_x, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency)
+        ax.fill_between(low_ent_x, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency)
+    else:
+        ext = plot_dict["ext"] ; cur = plot_dict["cur"] ; ent = plot_dict["ent"]
+        
+    ex, ey       = get_x_y(ext)
+    icx, icy     = get_x_y(cur)
+    iex, iey     = get_x_y(ent)
+
+    ax.axhline(y = 0, color = 'gray', linestyle = '--')
+    ax.plot(ex,  ey,  color = "red", alpha = line_transparency, label = "Extrinsic")
     if(not all(i == 0 for i in icy)):
-        plt.plot(icx, icy, color = "green", label = "ln Curiosity")
+        ax.plot(icx, icy, color = "green", alpha = line_transparency, label = "ln Curiosity")
     if(not all(i == 0 for i in iey)):
-        plt.plot(iex, iey, color = "blue",  label = "sq Entropy")
-    plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
-    plt.legend(loc = 'upper left')
-    plt.ylim(min_max)
+        ax.plot(iex, iey, color = "blue", alpha = line_transparency, label = "sq Entropy")
+    ax.legend(loc = 'upper left')
+    ax.set_ylim(mins_maxs[1])
     
-    plt.title("Average Extrinsic vs Intrinsic Rewards")
-    save_plot("ext_int" + ("_{}".format(name) if name != "" else ""), folder)
-    plt.close()
-    
-    ey = normalize(ey)
-    icy = normalize(icy)
-    iey = normalize(iey)
-    
-    plt.xlabel("Epochs")
-    plt.ylabel("Value")
-    
-    divide_arenas([x+1 for x in ex])
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("Value")
+    ax.title.set_text("Extrinsic vs Intrinsic Rewards")
+    divide_arenas(xs, ax)
 
-    plt.axhline(y = 0, color = 'gray', linestyle = '--')
+
+
+    # Extrinsic, intrinsic normalized
+    ax = axs[2]
+
+    if(many):
+        ney = normalize(low_ext_y + ey + high_ext_y)
+        nicy = normalize(low_cur_y + icy + high_cur_y)
+        niey = normalize(low_ent_y + iey + high_ent_y)    
+        low_ext_y = ney[:len(ey)]    ; high_ext_y = ney[2*len(ey):]   ; ney = ney[len(ey):2*len(ey)]
+        low_cur_y = nicy[:len(icy)]  ; high_cur_y = nicy[2*len(icy):] ; nicy = nicy[len(ey):2*len(icy)]
+        low_ent_y = niey[:len(iey)]  ; high_ent_y = niey[2*len(iey):] ; niey = niey[len(iey):2*len(iey)]
+        ax.fill_between(ex, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency)
+        ax.fill_between(icx, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency)
+        #ax.fill_between(iex, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency)
+    else:
+        ney = normalize(ey)
+        nicy = normalize(icy)
+        niey = normalize(iey)    
+    
+    ax.axhline(y = 0, color = 'gray', linestyle = '--')
+    ax.plot(ex,  ney,  color = "red", alpha = line_transparency, label = "Extrinsic")
     if(not all(i == 0 for i in icy)):
-        plt.plot(icx, icy, color = "green", label = "ln Curiosity")
-    if(not all(i == 0 for i in iey)):
-        plt.plot(iex, iey, color = "blue",  label = "sq Entropy")
-    plt.plot(ex,  ey,  color = "red",   label = "Extrinsic", alpha = .5)
-    plt.legend(loc = 'upper left')
+        ax.plot(icx, nicy, color = "green", alpha = line_transparency, label = "ln Curiosity")
+    #if(not all(i == 0 for i in iey)):
+    #    ax.plot(iex, niey, color = "blue", alpha = line_transparency, label = "sq Entropy")
+    ax.legend(loc = 'upper left')
     
-    plt.title("Normalized average Extrinsic vs Intrinsic Rewards")
-    save_plot("ext_int_normalized" + ("_{}".format(name) if name != "" else ""), folder)
-    plt.close()
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("Value")
+    ax.title.set_text("Normalized Extrinsic vs Intrinsic Rewards")    
+    divide_arenas(xs, ax)
     
+    # Agent losses
+    if(many):
+        loss_dict_list = [{
+            "trans" : d["losses"][:,0],
+            "alpha" : d["losses"][:,1],
+            "actor" : d["losses"][:,2],
+            "crit1" : d["losses"][:,3],
+            "crit2" : d["losses"][:,4],
+        } for d in plot_dict]
+        
+        low_trans, trans, high_trans = get_quantiles(loss_dict_list, "trans")
+        low_alpha, alpha, high_alpha = get_quantiles(loss_dict_list, "alpha")
+        low_actor, actor, high_actor = get_quantiles(loss_dict_list, "actor")
+        low_crit1, crit1, high_crit1 = get_quantiles(loss_dict_list, "crit1")
+        low_crit2, crit2, high_crit2 = get_quantiles(loss_dict_list, "crit2")
+        
+        trans_x, trans_y = get_x_y(trans) ; _, low_trans_y = get_x_y(low_trans)  ; _, high_trans_y = get_x_y(high_trans)
+        alpha_x, alpha_y = get_x_y(alpha) ; _, low_alpha_y = get_x_y(low_alpha)  ; _, high_alpha_y = get_x_y(high_alpha)
+        actor_x, actor_y = get_x_y(actor) ; _, low_actor_y = get_x_y(low_actor)  ; _, high_actor_y = get_x_y(high_actor)
+        crit1_x, crit1_y = get_x_y(crit1) ; _, low_crit1_y = get_x_y(low_crit1)  ; _, high_crit1_y = get_x_y(high_crit1)
+        crit2_x, crit2_y = get_x_y(crit2) ; _, low_crit2_y = get_x_y(low_crit2)  ; _, high_crit2_y = get_x_y(high_crit2)
+        
+    else:
+        trans = plot_dict["losses"][:,0]
+        alpha = plot_dict["losses"][:,1]
+        actor = plot_dict["losses"][:,2]
+        crit1 = plot_dict["losses"][:,3]
+        crit2 = plot_dict["losses"][:,4]
+        
+        trans_x, trans_y = get_x_y(trans)
+        alpha_x, alpha_y = get_x_y(alpha)
+        actor_x, actor_y = get_x_y(actor)
+        crit1_x, crit1_y = get_x_y(crit1)
+        crit2_x, crit2_y = get_x_y(crit2)
     
-    
-# Compare rewards to curiosity.
-def plot_curiosity(rewards, curiosity, masks):
-    fig, ax1 = plt.subplots()    
-    ax2 = ax1.twinx()
-    for i in range(len(rewards)):
-        r = rewards[i].squeeze(-1).tolist()
-        r = [r_ for j, r_ in enumerate(r) if masks[i,j] == 1]
-        c = curiosity[i].squeeze(-1).tolist()
-        c = [c_ for j, c_ in enumerate(c) if masks[i,j] == 1]
-        x = [i for i in range(len(r))]
-        ax1.plot(x, r, color = "blue", alpha = .5, label = "Reward" if i == 0 else "")
-        ax2.plot(x, c, color = "green", alpha = .5, label = "Curiosity" if i == 0 else "")
-    plt.title("Value of rewards vs curiosity")
-    ax1.set_ylabel("Rewards")
-    ax1.legend(loc = 'upper left')
-    ax2.set_ylabel("Curiosity")
-    ax2.legend(loc = 'lower left')
-    plt.close()
-    
-            
-
-# How to plot losses.
-def plot_losses(losses, too_long, d, folder = folder, name = "", trans_min_max = (0,0), alpha_min_max = (0,0), actor_min_max = (0,0), critic_min_max = (0,0)):
-    trans_losses   = losses[:,0]
-    alpha_losses   = losses[:,1]
-    actor_losses   = losses[:,2]
-    critic1_losses = losses[:,3]
-    critic2_losses = losses[:,4]
-    
-    if(len(alpha_losses) == len([a for a in alpha_losses if a == None])):
+    if(len(alpha) == len([a for a in alpha if a == None])):
         no_alpha = True 
     else:
         no_alpha = False
     
-    trans_x, trans_y     = get_x_y(trans_losses, too_long)
-    alpha_x, alpha_y     = get_x_y(alpha_losses, too_long)
-    actor_x, actor_y     = get_x_y(actor_losses, too_long)
-    critic1_x, critic1_y = get_x_y(critic1_losses, None if too_long == None else too_long * d)
-    critic2_x, critic2_y = get_x_y(critic2_losses, None if too_long == None else too_long * d)
-    
-    trans_x = [x/args.iterations for x in trans_x]
-    alpha_x = [x/args.iterations for x in alpha_x]
-    actor_x = [x/args.iterations for x in actor_x]
-    critic1_x = [x/args.iterations for x in critic1_x]
-    critic2_x = [x/args.iterations for x in critic2_x]
-    
-    divide_arenas(trans_x)
-    
-    # Plot trans_loss
-    plt.xlabel("Epochs")
-    plt.plot(trans_x, trans_y, color = "green", label = "Trans")
-    plt.ylabel("ln Trans losses")
-    plt.legend(loc = 'upper left')
-    plt.title("ln Transitioner loss")
-    plt.ylim(trans_min_max)
-    save_plot("loss_trans" + ("_{}".format(name) if name != "" else ""), folder)
-    plt.close()
+    # Trans losses
+    ax = axs[3]
+    if(many): ax.fill_between(trans_x, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency)
+    ax.plot(trans_x, trans_y, color = "green", alpha = line_transparency, label = "Trans")
+    ax.legend(loc = 'upper left')
+    divide_arenas(trans_x, ax)
+    ax.set_ylim(mins_maxs[2])
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("ln Trans losses")
+    ax.title.set_text("ln Transitioner loss")
     
     # Plot losses for actor, critics, and alpha
-    fig, ax1 = plt.subplots()
-    plt.xlabel("Epochs")
-
-    ax1.plot(actor_x, actor_y, color='red', label = "Actor")
+    ax1 = axs[4]
+    if(many): ax1.fill_between(actor_x, low_actor_y, high_actor_y, color = "red", alpha = fill_transparency)
+    ax1.plot(actor_x, actor_y, color='red', alpha = line_transparency, label = "Actor")
+    ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Actor losses")
     ax1.legend(loc = 'upper left')
-    ax1.set_ylim(actor_min_max)
+    ax1.set_ylim(mins_maxs[3])
 
     ax2 = ax1.twinx()
-    divide_arenas(trans_x)
-    ax2.plot(critic1_x, critic1_y, color='blue', linestyle = "--", label = "Critic")
-    ax2.plot(critic2_x, critic2_y, color='blue', linestyle = ":",  label = "Critic")
+    if(many): 
+        ax2.fill_between(crit1_x, low_crit1_y, high_crit1_y, color = "blue", alpha = fill_transparency)
+        ax2.fill_between(crit2_x, low_crit2_y, high_crit2_y, color = "blue", alpha = fill_transparency)
+    ax2.plot(crit1_x, crit1_y, color='blue', alpha = line_transparency, linestyle = "--", label = "Critic")
+    ax2.plot(crit2_x, crit2_y, color='blue', alpha = line_transparency, linestyle = ":",  label = "Critic")
     ax2.set_ylabel("ln Critic losses")
     ax2.legend(loc = 'lower left')
-    ax2.set_ylim(critic_min_max)
+    ax2.set_ylim(mins_maxs[4])
     
     if(not no_alpha):
         ax3 = ax1.twinx()
         ax3.spines["right"].set_position(("axes", 1.2))
-        ax3.plot(alpha_x, alpha_y, color = (0,0,0,.5), label = "Alpha")
+        if(many): ax3.fill_between(alpha_x, low_alpha_y, high_alpha_y, color = (0,0,0,fill_transparency))
+        ax3.plot(alpha_x, alpha_y, color = (0,0,0,line_transparency), label = "Alpha")
         ax3.set_ylabel("Alpha losses")
         ax3.legend(loc = 'upper right')
-        ax3.set_ylim(alpha_min_max)
+        ax3.set_ylim(mins_maxs[5])
+        
+    divide_arenas(actor_x, ax1)
     
-    plt.title("Agent losses")
-    #fig.tight_layout()
-    save_plot("loss_agent" + ("_{}".format(name) if name != "" else ""), folder)
-    plt.close()
-    
-    
-  
-# How to plot exit-rates.
-def plot_exits(exits, folder = folder, name = "", min_max = (0,0)):
-    x = [i for i in range(1, len(exits)+1)]
-    divide_arenas(x)
-    plt.plot(x, exits, color = "gray")
-    plt.ylim([0, 1])
-    plt.title("Exit-rates")
-    plt.xlabel("Episodes")
-    plt.ylabel("Exit-rate")
-    save_plot("exits" + ("_{}".format(name) if name != "" else ""), folder)
-    plt.close()
+    ax1.title.set_text("Agent losses")
     
     
     
-# How to plot kinds of victory.
-def plot_which(which, folder = folder, name = ""):
-    which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
-    #which = [w[0] + ", " + str(w[1]) for w in which]
-    
-    which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
+    # Plot which
+    ax = axs[5]
     kinds = ["FAIL", 
              "L", "R",
              "LL", "LR", "RL", "RR",
              "LLL", "LLR", "LRL", "LRR", "RLL", "RLR", "RRL", "RRR"]
     kinds = [r"$\bf{(" + k + ")}$" if k in ["R", "LL", "RLL"] else k for k in kinds]
-    
     kinds.reverse()
-    plt.scatter([0 for _ in kinds], kinds, color = (0,0,0,0))
-    plt.axhline(y = 13.5, color = (0, 0, 0, .2))
-    plt.axhline(y = 11.5, color = (0, 0, 0, .2))
-    plt.axhline(y = 7.5,  color = (0, 0, 0, .2))
+    ax.scatter([0 for _ in kinds], kinds, color = (0,0,0,0))
+    ax.axhline(y = 13.5, color = (0, 0, 0, .2))
+    ax.axhline(y = 11.5, color = (0, 0, 0, .2))
+    ax.axhline(y = 7.5,  color = (0, 0, 0, .2))
+    divide_arenas(xs, ax)
     
-    x = [i for i in range(1, len(which)+1)]
-    divide_arenas(x)
-    plt.scatter(x, which, color = "gray")
-    plt.title("Kind of Exit")
-    plt.xlabel("Episodes")
-    plt.ylabel("Which Victory")
-    save_plot("which" + ("_{}".format(name) if name != "" else ""), folder)
+    if(many):
+        for dict in plot_dict:
+            which = dict["which"]
+            which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
+            which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
+            ax.scatter(xs, which, color = "gray", alpha = 1/len(plot_dict))
+    else:
+        which = plot_dict["which"]
+        which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
+        which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
+        ax.scatter(xs, which, color = "gray")
+        
+    ax.title.set_text("Kind of Exit")
+    ax.set_xlabel("Episodes")
+    ax.set_ylabel("Which Victory")
+    
+
+
+    # Save
+    plt.savefig(folder + "/plots" + ("_{}".format(name) if name != "" else "") + ".png")
     plt.close()
 
 
 
-# How to save/load agent
 
-def save_agent(agent, suf = ""):
-    if(folder == None): return
-    if(type(suf) == int): suf = str(suf).zfill(5)
-    torch.save(agent.state_dict(), folder + "/agents/agent_{}.pt".format(suf))
-
-def load_agent(agent, folder, suf = "last"):
-    if(type(suf) == int): suf = str(suf).zfill(5)
-    agent.load_state_dict(torch.load(folder + "/agents/agent_{}.pt".format(suf)))
-    return(agent)
-
-if args.id != 0:
-    print("units.py loaded.")
 # %%

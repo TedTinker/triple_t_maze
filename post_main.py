@@ -18,8 +18,7 @@ from itertools import chain
 import torch
 
 # When I import this, it tries using provided parameters for utils' args.
-from utils import arena_dict, \
-    plot_rewards, plot_losses, plot_exits, plot_extrinsic_intrinsic, plot_which, plot_cumulative_rewards
+from utils import arena_dict, plots
 
 
 
@@ -91,19 +90,19 @@ def plot_all_positions(training_name):
         else:
             plot_positions(positions_lists = positions_lists, 
                            arena_name = arena_name, 
-                           folder = training_name + "_positions",
+                           folder = training_name + "_shared",
                            load_name = load_name)
             
 
     
 def make_vid(training_name, fps = 1):
     files = []
-    folder = "saves/{}_positions".format(training_name)
+    folder = "saves/{}_shared".format(training_name)
     for file in os.listdir(folder):
-        if(file[-4:] == ".png"):
+        if(file[-4:] == ".png" and file[:5] != "plots"):
             files.append(file)
     files.sort()
-    
+        
     frame = cv2.imread(folder + "/" + files[0]); height, width, layers = frame.shape
     fourcc = cv2.VideoWriter_fourcc(*'DIVX') 
     video = cv2.VideoWriter("saves/{}_video.avi".format(training_name), fourcc, fps, (width, height))
@@ -120,9 +119,9 @@ def make_mega_vid(order, fps = 1):
         
     for k in types.keys():
         if(k != "empty_space"):
-            folder = "saves/{}_positions".format(k)
+            folder = "saves/{}_shared".format(k)
             for file in os.listdir(folder):
-                if(file[-4:] == ".png"):
+                if(file[-4:] == ".png" and file[:5] != "plots"):
                     types[k].append(file)
             types[k].sort()
     
@@ -130,7 +129,7 @@ def make_mega_vid(order, fps = 1):
     for folder in os.listdir("saves"):
         folders.append(folder)
     if("all_positions" in folders): shutil.rmtree("saves/all_positions")
-    os.mkdir("saves/all_positions")
+    os.mkdir("saves/all_shared")
     
     length = len(types[list(types.keys())[0]])
     rows = len(order) 
@@ -145,7 +144,7 @@ def make_mega_vid(order, fps = 1):
         images = []
         for kind in list(types.keys()):
             if(kind != "empty_space"):
-                images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+                images.append(Image.open("saves/{}_shared/{}".format(kind, types[kind][i])))
         for image in images:
             xs.append(image.size[0]) ; ys.append(image.size[1])
     x = max(xs) ; y = max(ys)
@@ -154,7 +153,7 @@ def make_mega_vid(order, fps = 1):
         images = []
         for kind in list(chain(*order)):
             if(kind != "empty_space"):
-                images.append(Image.open("saves/{}_positions/{}".format(kind, types[kind][i])))
+                images.append(Image.open("saves/{}_shared/{}".format(kind, types[kind][i])))
             else:
                 images.append(None)
             #print(images[-1].shape)
@@ -164,7 +163,7 @@ def make_mega_vid(order, fps = 1):
             if(image != None): new_image.paste(image, (column*x,row*y))
             #print("Together:", new_image.shape)
             #print()
-        new_image.save("saves/all_positions/{}.png".format(str(i).zfill(5)), format="PNG")
+        new_image.save("saves/all_shared/{}.png".format(str(i).zfill(5)), format="PNG")
         
     make_vid("all", fps)
     
@@ -175,7 +174,9 @@ def tuple_min_max(min_max_list):
     maxs = [min_max[1] for min_max in min_max_list]
     return((min(mins), max(maxs)))
     
-def get_min_max(this, plot_dict_list, cumulative = False):
+def get_min_max(this, plot_dict_dict, cumulative = False):
+    plot_dict_list = [] 
+    for key in plot_dict_dict.keys(): plot_dict_list += plot_dict_dict[key]
     these = [plot_dict[this] for plot_dict in plot_dict_list]
     if(cumulative):
         these = [[t for t in this if t != None] for this in these]
@@ -208,68 +209,55 @@ def make_end_pics(order):
 
     all_folders = []
     for folder in os.listdir("saves"):
-        if("_".join(folder.split("_")[:-1]) in order and folder.split('_')[-1] != "positions"):
+        if("_".join(folder.split("_")[:-1]) in order and folder.split('_')[-1] != "shared"):
             all_folders.append(folder)
+    all_folders.sort()
                 
-    plot_dict_list = []
+    plot_dict_dict = {training_name : [] for training_name in order}
     for folder in all_folders:
-        plot_dict_list.append(torch.load("saves/" + folder + "/plot_dict.pt"))
-        
+        training_name = "_".join(folder.split("_")[:-1])
+        plot_dict_dict[training_name].append(torch.load("saves/" + folder + "/plot_dict.pt"))
+                
     print("\n\nGetting plot mins/maxes...")
         
-    exits_rolled_min_max = get_min_max("exits_rolled", plot_dict_list)
-    rew_min_max = get_min_max("rew", plot_dict_list, True)
-    pun_min_max = get_min_max("pun", plot_dict_list, True)
-    ext_min_max = get_min_max("ext", plot_dict_list)
-    cur_min_max = get_min_max("cur", plot_dict_list)
-    ent_min_max = get_min_max("ent", plot_dict_list)
-    trans_min_max, alpha_min_max, actor_min_max, critic1_min_max, critic2_min_max = get_min_max("losses", plot_dict_list)
-    
-    print("\n\nGot plot mins/maxes...")
-    
+    rew_min_max = get_min_max("rew", plot_dict_dict, True)
+    pun_min_max = get_min_max("pun", plot_dict_dict, True)
+    ext_min_max = get_min_max("ext", plot_dict_dict)
+    cur_min_max = get_min_max("cur", plot_dict_dict)
+    ent_min_max = get_min_max("ent", plot_dict_dict)
+    trans_min_max, alpha_min_max, actor_min_max, critic1_min_max, critic2_min_max = get_min_max("losses", plot_dict_dict)
+        
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
     
-    for plot_dict in plot_dict_list:
-        plot_exits(plot_dict["exits_rolled"], folder = plot_dict["folder"], name = "", min_max = exits_rolled_min_max)
-        plot_which(plot_dict["which"], folder = plot_dict["folder"], name = "")
-        plot_cumulative_rewards(plot_dict["rew"], plot_dict["pun"], folder = plot_dict["folder"], name = "", min_max = rew_min_max)
-        plot_extrinsic_intrinsic(plot_dict["ext"], plot_dict["cur"], plot_dict["ent"], folder = plot_dict["folder"], name = "", min_max = ext_min_max)
-        plot_losses(plot_dict["losses"], too_long = None, d = plot_dict["args"].d, folder = plot_dict["folder"], name = "", trans_min_max = trans_min_max, alpha_min_max = alpha_min_max, actor_min_max = actor_min_max, critic_min_max = critic_min_max)
+    mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max]
+    
+    print("\n\nGot plot mins/maxes...")
+    
+    for training_name, plot_dict_list in plot_dict_dict.items():
+        for i, plot_dict in enumerate(plot_dict_list):
+            plots(plot_dict, mins_maxs, folder = plot_dict["folder"] + "/plots")
+        plots(plot_dict_list, mins_maxs, folder = "saves/" + training_name + "_shared")
 
     for training_name in order:
-        new_folder = "saves/{}_done".format(training_name)
-        if("{}_done".format(training_name) in all_folders): pass
-        else: os.mkdir(new_folder)
-        
-        folders = [folder for folder in all_folders if "_".join(folder.split("_")[:-1]) == training_name]
-        plot_names = ["cumulative", "ext_int", "ext_int_normalized", "loss_agent", "loss_trans", "which", "exits"]
-        for name in plot_names:
-            images = []
-            for folder in folders:
-                images.append(Image.open("saves/{}/plots/{}".format(folder, name+".png")))
-            new_image = Image.new("RGB", ((len(folders)+1)*images[0].size[0], images[0].size[1]))
-            w,h = images[0].size
-            arr = np.zeros((h,w,4), float)
-            for i, image in enumerate(images):
-                new_image.paste(image, (i*image.size[0],0))
-                imarr = np.array(image, dtype=np.uint8)
-                arr += imarr / len(images)
-            arr = np.array(np.round(arr), dtype=np.uint8)
-            new_image.paste(Image.fromarray(arr, mode="RGBA"), (len(images)*image.size[0],0))
-            new_image.save(new_folder + "/{}.png".format(name))
+        folders = []
+        for folder in os.listdir("saves"):
+            if("_".join(folder.split("_")[:-1]) == training_name):
+                folders.append("saves/" + folder)
+        folders.sort()
             
         images = []    
-        files = [n + ".png" for n in plot_names]
-        for file in files:
-            images.append(Image.open(new_folder + "/" + file))
-            os.remove(new_folder + "/" + file)
-        new_image = Image.new("RGB", (images[0].size[0], len(plot_names)*images[0].size[1]))
+        for folder in folders:
+            if(folder.split("_")[-1] == "shared"):
+                images.append(Image.open(folder + "/plots.png"))
+            else:
+                images.append(Image.open(folder + "/plots/plots.png"))
+        new_image = Image.new("RGB", (len(folders)*images[0].size[0], images[0].size[1]))
         for i, image in enumerate(images):
-            new_image.paste(image, (0, i*image.size[1]))
+            new_image.paste(image, (i*image.size[0], 0))
         new_image.save("saves/all_{}_plots.png".format(training_name))
-        os.rmdir(new_folder)
+        
         print("Done with {}...".format(training_name))
     
     # Predictions
@@ -278,7 +266,7 @@ def make_end_pics(order):
         
         folders = []
         for folder in os.listdir("saves"):
-            if("_".join(folder.split("_")[:-1]) == training_name and not folder.split('_')[-1] in ("positions", "predictions")):
+            if("_".join(folder.split("_")[:-1]) == training_name and not folder.split('_')[-1] in ("shared", "predictions")):
                 folders.append(folder)
         
         for folder in folders:

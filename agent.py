@@ -10,7 +10,7 @@ import numpy as np
 from math import log
 from copy import deepcopy
 
-from utils import args, device, plot_curiosity, plot_some_predictions
+from utils import args, device, plot_some_predictions
 from buffer import RecurrentReplayBuffer
 from models import Transitioner, Actor, Critic
 
@@ -142,7 +142,6 @@ class Agent:
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions):
             plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps)
-            #plot_curiosity(rewards.detach(), curiosity.detach(), masks.detach())
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()

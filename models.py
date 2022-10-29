@@ -140,6 +140,7 @@ class Transitioner(nn.Module):
         encoding, _ = self.just_encode(image, speed, prev_action, hidden)
         action = self.actions_in(action)
         x = torch.cat((encoding, action), dim=-1)
+        # BNN here?
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
         next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
