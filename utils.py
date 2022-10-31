@@ -512,13 +512,13 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     # Trans losses
     ax = axs[3]
     if(many): ax.fill_between(trans_x, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency)
-    ax.plot(trans_x, trans_y, color = "green", alpha = line_transparency, label = "Trans")
+    ax.plot(trans_x, trans_y, color = "green", alpha = line_transparency, label = "ln Trans")
     ax.legend(loc = 'upper left')
     divide_arenas(trans_x, ax)
     ax.set_ylim(mins_maxs[2])
     ax.set_xlabel("Epochs")
     ax.set_ylabel("ln Trans losses")
-    ax.title.set_text("ln Transitioner loss")
+    ax.title.set_text("Transitioner loss")
     
     # Plot losses for actor, critics, and alpha
     ax1 = axs[4]
