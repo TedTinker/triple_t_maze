@@ -61,9 +61,14 @@ class Transitioner(nn.Module):
         self.actions_in = nn.Sequential(
             nn.Linear(2*self.args.lookahead, self.args.hidden_size),
             nn.LeakyReLU())
+        
+        self.mean = nn.Sequential(
+            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size))
+        self.std  = nn.Sequential(
+            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size))
 
         self.next_image_1 = nn.Sequential(
-            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size),
+            nn.Linear(self.args.hidden_size, self.args.hidden_size),
             nn.LeakyReLU(),
             nn.Linear(self.args.hidden_size, 32 * self.args.image_size//4 * self.args.image_size//4),
             nn.LeakyReLU()) 
@@ -97,7 +102,7 @@ class Transitioner(nn.Module):
             )
 
         self.next_speed = nn.Sequential(
-            nn.Linear(self.args.encode_size + self.args.hidden_size, 1)) 
+            nn.Linear(self.args.hidden_size, 1)) 
 
         self.image_in_1.apply(init_weights)
         self.image_in_2.apply(init_weights)
@@ -140,7 +145,12 @@ class Transitioner(nn.Module):
         encoding, _ = self.just_encode(image, speed, prev_action, hidden)
         action = self.actions_in(action)
         x = torch.cat((encoding, action), dim=-1)
-        # BNN here?
+        
+        mean = self.mean(x)
+        std = torch.log(1 + torch.exp(self.std(x))) + 1e-6
+        e = torch.normal(torch.zeros((std.shape)), torch.ones((std.shape))).to(device)
+        x = mean + std*e
+        
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
         next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
@@ -150,7 +160,7 @@ class Transitioner(nn.Module):
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
-        return(next_image, next_speed)
+        return(next_image, next_speed, mean, std)
 
 
 
