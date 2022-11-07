@@ -20,6 +20,19 @@ import torch
 # When I import this, it tries using provided parameters for utils' args.
 from utils import arena_dict, plots
 
+import datetime 
+start_time = datetime.datetime.now()
+
+def reset_start_time():
+    global start_time
+    start_time = datetime.datetime.now()
+    
+def duration():
+    global start_time
+    change_time = datetime.datetime.now() - start_time
+    change_time = change_time - datetime.timedelta(microseconds=change_time.microseconds)
+    return(change_time)
+
 
 
 from colorsys import hsv_to_rgb
@@ -219,6 +232,7 @@ def make_end_pics(order):
         plot_dict_dict[training_name].append(torch.load("saves/" + folder + "/plot_dict.pt"))
                 
     print("\n\nGetting plot mins/maxes...")
+    print("Duration: {}".format(duration()))
         
     rew_min_max = get_min_max("rew", plot_dict_dict, True)
     pun_min_max = get_min_max("pun", plot_dict_dict, True)
@@ -234,11 +248,16 @@ def make_end_pics(order):
     mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max]
     
     print("\n\nGot plot mins/maxes...")
+    print("Duration: {}".format(duration()))
     
     for training_name, plot_dict_list in plot_dict_dict.items():
         for i, plot_dict in enumerate(plot_dict_list):
             plots(plot_dict, mins_maxs, folder = plot_dict["folder"] + "/plots")
+            print("\n\nOne plot done...")
+            print("Duration: {}".format(duration()))
         plots(plot_dict_list, mins_maxs, folder = "saves/" + training_name + "_shared")
+        print("Many-plot done...")
+        print("Duration: {}".format(duration()))
 
     for training_name in order:
         folders = []
@@ -259,6 +278,7 @@ def make_end_pics(order):
         new_image.save("saves/all_{}_plots.png".format(training_name))
         
         print("Done with {}...".format(training_name))
+        print("Duration: {}".format(duration()))
     
     # Predictions
     for training_name in order:
@@ -331,6 +351,7 @@ if(args.explore_type[0] != "("):
     print("\n\nDone with {}!".format(args.explore_type))
 else:
     print("Starting!")
+    print("Duration: {}".format(duration()))
     order = args.explore_type[1:-1]
     order = order.split("+")
     if(order[-1] != "break"): order.append("break")
@@ -343,10 +364,13 @@ else:
     order = rows
     make_end_pics(order)
     print("\n\nDone with end pics...")
+    print("Duration: {}".format(duration()))
     make_together_pic(order)
     print("\n\nDone with together pic...")
+    print("Duration: {}".format(duration()))
     make_mega_vid(order)
     print("\n\nDone!")
+    print("Duration: {}".format(duration()))
 
 
 

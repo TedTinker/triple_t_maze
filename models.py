@@ -111,6 +111,8 @@ class Transitioner(nn.Module):
         self.lstm.apply(init_weights)
         self.encode.apply(init_weights)
         self.actions_in.apply(init_weights)
+        self.mean.apply(init_weights)
+        self.std.apply(init_weights)
         self.next_image_1.apply(init_weights)
         self.next_image_2.apply(init_weights)
         self.next_speed.apply(init_weights)
@@ -147,8 +149,9 @@ class Transitioner(nn.Module):
         x = torch.cat((encoding, action), dim=-1)
         
         mean = self.mean(x)
-        std = torch.log(1 + torch.exp(self.std(x))) + 1e-6
-        e = torch.normal(torch.zeros((std.shape)), torch.ones((std.shape))).to(device)
+        std = self.std(x).exp()
+        dist = Normal(0,1)
+        e = dist.sample(std.shape).to(device)
         x = mean + std*e
         
         next_image = self.next_image_1(x)
@@ -201,7 +204,7 @@ class Actor(nn.Module):
         mu, log_std = self.forward(encode)
         std = log_std.exp()
         dist = Normal(0, 1)
-        e = dist.sample().to(device)
+        e = dist.sample(std.shape).to(device)
         action = torch.tanh(mu + e * std)
         log_prob = Normal(mu, std).log_prob(mu + e * std) - \
             torch.log(1 - action.pow(2) + epsilon)
@@ -211,7 +214,7 @@ class Actor(nn.Module):
         mu, log_std = self.forward(encode)
         std = log_std.exp()
         dist = Normal(0, 1)
-        e      = dist.sample().to(device)
+        e      = dist.sample(std.shape).to(device)
         action = torch.tanh(mu + e * std).cpu()
         return action[0]
 

@@ -387,8 +387,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         low_pun, pun, high_pun = get_quantiles(plot_dict, "pun")
         low_rew = np.cumsum(low_rew) ; rew = np.cumsum(rew) ; high_rew = np.cumsum(high_rew)
         low_pun = np.cumsum(low_pun) ; pun = np.cumsum(pun) ; high_pun = np.cumsum(high_pun)
-        ax.fill_between(xs, low_rew, high_rew, color = "turquoise", alpha = 2*fill_transparency)
-        ax.fill_between(xs, low_pun, high_pun, color = "pink", alpha = 2*fill_transparency)
+        ax.fill_between(xs, low_rew, high_rew, color = "turquoise", alpha = 2*fill_transparency, linewidth = 0)
+        ax.fill_between(xs, low_pun, high_pun, color = "pink", alpha = 2*fill_transparency, linewidth = 0)
     else:
         rew = plot_dict["rew"] ; rew = np.cumsum(rew)
         pun = plot_dict["pun"] ; pun = np.cumsum(pun)
@@ -412,9 +412,9 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         low_ext_x, low_ext_y = get_x_y(low_ext) ; high_ext_x, high_ext_y = get_x_y(high_ext)
         low_cur_x, low_cur_y = get_x_y(low_cur) ; high_cur_x, high_cur_y = get_x_y(high_cur)
         low_ent_x, low_ent_y = get_x_y(low_ent) ; high_ent_x, high_ent_y = get_x_y(high_ent)
-        ax.fill_between(low_ext_x, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency)
-        ax.fill_between(low_cur_x, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency)
-        ax.fill_between(low_ent_x, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency)
+        ax.fill_between(low_ext_x, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(low_cur_x, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(low_ent_x, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency, linewidth = 0)
     else:
         ext = plot_dict["ext"] ; cur = plot_dict["cur"] ; ent = plot_dict["ent"]
         
@@ -448,9 +448,9 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         low_ext_y = ney[:len(ey)]    ; high_ext_y = ney[2*len(ey):]   ; ney = ney[len(ey):2*len(ey)]
         low_cur_y = nicy[:len(icy)]  ; high_cur_y = nicy[2*len(icy):] ; nicy = nicy[len(ey):2*len(icy)]
         low_ent_y = niey[:len(iey)]  ; high_ent_y = niey[2*len(iey):] ; niey = niey[len(iey):2*len(iey)]
-        ax.fill_between(ex, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency)
-        ax.fill_between(icx, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency)
-        #ax.fill_between(iex, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency)
+        ax.fill_between(ex, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(icx, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency, linewidth = 0)
+        #ax.fill_between(iex, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency, linewidth = 0)
     else:
         ney = normalize(ey)
         nicy = normalize(icy)
@@ -511,7 +511,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Trans losses
     ax = axs[3]
-    if(many): ax.fill_between(trans_x, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency)
+    if(many): ax.fill_between(trans_x, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency, linewidth = 0)
     ax.plot(trans_x, trans_y, color = "green", alpha = line_transparency, label = "ln Trans")
     ax.legend(loc = 'upper left')
     divide_arenas(trans_x, ax)
@@ -522,7 +522,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Plot losses for actor, critics, and alpha
     ax1 = axs[4]
-    if(many): ax1.fill_between(actor_x, low_actor_y, high_actor_y, color = "red", alpha = fill_transparency)
+    if(many): ax1.fill_between(actor_x, low_actor_y, high_actor_y, color = "red", alpha = fill_transparency, linewidth = 0)
     ax1.plot(actor_x, actor_y, color='red', alpha = line_transparency, label = "Actor")
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Actor losses")
@@ -531,8 +531,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
 
     ax2 = ax1.twinx()
     if(many): 
-        ax2.fill_between(crit1_x, low_crit1_y, high_crit1_y, color = "blue", alpha = fill_transparency)
-        ax2.fill_between(crit2_x, low_crit2_y, high_crit2_y, color = "blue", alpha = fill_transparency)
+        ax2.fill_between(crit1_x, low_crit1_y, high_crit1_y, color = "blue", alpha = fill_transparency, linewidth = 0)
+        ax2.fill_between(crit2_x, low_crit2_y, high_crit2_y, color = "blue", alpha = fill_transparency, linewidth = 0)
     ax2.plot(crit1_x, crit1_y, color='blue', alpha = line_transparency, linestyle = "--", label = "Critic")
     ax2.plot(crit2_x, crit2_y, color='blue', alpha = line_transparency, linestyle = ":",  label = "Critic")
     ax2.set_ylabel("ln Critic losses")
@@ -542,7 +542,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     if(not no_alpha):
         ax3 = ax1.twinx()
         ax3.spines["right"].set_position(("axes", 1.2))
-        if(many): ax3.fill_between(alpha_x, low_alpha_y, high_alpha_y, color = (0,0,0,fill_transparency))
+        if(many): ax3.fill_between(alpha_x, low_alpha_y, high_alpha_y, color = (0,0,0,fill_transparency), linewidth = 0)
         ax3.plot(alpha_x, alpha_y, color = (0,0,0,line_transparency), label = "Alpha")
         ax3.set_ylabel("Alpha losses")
         ax3.legend(loc = 'upper right')

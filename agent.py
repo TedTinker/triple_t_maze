@@ -112,12 +112,12 @@ class Agent:
         flat_real = torch.cat([flat_images, flat_speeds], dim = -1)
         flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
         
-        dkl = F.kl_div(
-            F.log_softmax(flat_pred, dim=-1), 
-            F.log_softmax(flat_real, dim=-1), 
-            reduction="none", log_target=True) # Using this loss function doesn't make much sense, but it works, so I'm keeping it.
+        #dkl = F.kl_div(
+        #    F.log_softmax(flat_pred, dim=-1), 
+        #    F.log_softmax(flat_real, dim=-1), 
+        #    reduction="none", log_target=True) # Using this loss function doesn't make much sense, but it works, so I'm keeping it.
         
-        #dkl = F.mse_loss(flat_pred, flat_real, reduction="none")
+        dkl = F.mse_loss(flat_pred, flat_real, reduction="none") # This is more sensible and works as well. 
         
         trans_loss = torch.sum(dkl.clone())
         self.trans_optimizer.zero_grad()
@@ -130,7 +130,6 @@ class Agent:
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
         
-        """
         # "Naive" curiosity, not actually FEP
         # With kl_div, eta 3, 6, and 10. With mse, eta .003, .006, and .01
         dkl = sum([dkl[:,:,i] for i in range(dkl.shape[-1])])
@@ -140,22 +139,28 @@ class Agent:
         else:
             curiosity = self.args.eta * dkl.unsqueeze(-1)
             self.args.eta = self.args.eta * self.args.eta_rate
-        """
         
+        """
         # My attempt at real FEP
-        p_means = torch.tile(torch.mean(means, dim = 0).unsqueeze(0), (means.shape[0], 1, 1))
-        p_stds  = torch.tile(torch.mean(stds,  dim = 0).unsqueeze(0), (stds.shape[0],  1, 1))
-        dkl = .5 * ((torch.pow(p_means - means, 2) / torch.pow(p_stds, 2)) + (torch.pow(stds,2) / torch.pow(p_stds, 2)) - torch.log(torch.pow(stds,2) / torch.pow(p_stds,2)) - 1)
-        dkl = sum([dkl[:,:,i] for i in range(dkl.shape[-1])])
-        print("\n\nstds 0: {}\n\n".format(torch.sum(torch.where(stds==0, True, False))))
-        print("\n\ndkl nan: {}\n\n".format(torch.sum(torch.isnan(dkl))))
+        means *= masks.detach() ; stds *= masks.detach()
+        #p_means = torch.tile(torch.mean(means, dim = (0,1)).unsqueeze(0).unsqueeze(0), (means.shape[0], means.shape[1], 1))*masks.detach()
+        #p_stds  = torch.tile(torch.mean(stds,  dim = (0,1)).unsqueeze(0).unsqueeze(0), (stds.shape[0],  stds.shape[1],  1))*masks.detach()
+        p_means = means
+        p_stds  = .0000001 * torch.ones(means.shape)*masks.detach()
+        dkl = .5 * (
+            (torch.pow(p_means - means, 2) / torch.pow(p_stds, 2)) + \
+                (torch.pow(stds,2) / torch.pow(p_stds, 2)) - \
+                    torch.log(torch.pow(stds,2) / torch.pow(p_stds,2)) - 1)
+        dkl = torch.nan_to_num(dkl, nan = 0)
+        dkl = torch.mean(dkl, dim = -1)
+        print("\n\nFEP: {}\n\n".format(torch.mean(dkl)))
         if(self.args.eta == None):
             curiosity = self.eta * dkl.unsqueeze(-1)
             self.eta = self.eta * self.args.eta_rate
         else:
             curiosity = self.args.eta * dkl.unsqueeze(-1)
-            self.args.eta = self.args.eta * self.args.eta_rate
-        
+            self.args.eta = self.args.eta * self.args.eta_rate        
+        """
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions):
