@@ -176,7 +176,6 @@ class Agent:
         Q_target1_next = self.critic1_target(next_encoded.detach(), next_action.detach())
         Q_target2_next = self.critic2_target(next_encoded.detach(), next_action.detach())
         Q_target_next = torch.min(Q_target1_next, Q_target2_next)
-        log_pis_next = torch.mean(log_pis_next, -1).unsqueeze(-1)
         if self.args.alpha == None: Q_targets = rewards.cpu() + (self.args.gamma * (1 - dones.cpu()) * (Q_target_next.cpu() - self.alpha * log_pis_next.cpu()))
         else:                       Q_targets = rewards.cpu() + (self.args.gamma * (1 - dones.cpu()) * (Q_target_next.cpu() - self.args.alpha * log_pis_next.cpu()))
         
