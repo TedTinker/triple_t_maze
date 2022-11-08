@@ -94,7 +94,7 @@ class Agent:
             next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
-        pred_next_images, pred_next_speeds, means, stds = self.transitioner(
+        pred_next_images, pred_next_speeds, means, stds, log_prob = self.transitioner(
             images[:,:-self.args.lookahead].detach(), 
             speeds[:,:-self.args.lookahead].detach(), 
             prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
@@ -112,14 +112,9 @@ class Agent:
         flat_real = torch.cat([flat_images, flat_speeds], dim = -1)
         flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
         
-        #dkl = F.kl_div(
-        #    F.log_softmax(flat_pred, dim=-1), 
-        #    F.log_softmax(flat_real, dim=-1), 
-        #    reduction="none", log_target=True) # Using this loss function doesn't make much sense, but it works, so I'm keeping it.
+        trans_errors = F.mse_loss(flat_pred, flat_real, reduction = "none") 
         
-        dkl = F.mse_loss(flat_pred, flat_real, reduction="none") # This is more sensible and works as well. 
-        
-        trans_loss = torch.sum(dkl.clone())
+        trans_loss = torch.sum(trans_errors.clone())
         self.trans_optimizer.zero_grad()
         trans_loss.backward()
         self.trans_optimizer.step()
@@ -131,14 +126,15 @@ class Agent:
             encoded = encoded[:,:-1]
         
         # "Naive" curiosity, not actually FEP
-        # With kl_div, eta 3, 6, and 10. With mse, eta .003, .006, and .01
-        dkl = sum([dkl[:,:,i] for i in range(dkl.shape[-1])])
+        trans_errors = sum([trans_errors[:,:,i] for i in range(trans_errors.shape[-1])])
         if(self.args.eta == None):
-            curiosity = self.eta * dkl.unsqueeze(-1)
+            curiosity = self.eta * trans_errors.unsqueeze(-1)
             self.eta = self.eta * self.args.eta_rate
         else:
-            curiosity = self.args.eta * dkl.unsqueeze(-1)
+            curiosity = self.args.eta * trans_errors.unsqueeze(-1)
             self.args.eta = self.args.eta * self.args.eta_rate
+            
+        print("\n\MSE: {}\n\n".format(torch.mean(trans_errors)))
         
         """
         # My attempt at real FEP
@@ -153,6 +149,8 @@ class Agent:
                     torch.log(torch.pow(stds,2) / torch.pow(p_stds,2)) - 1)
         dkl = torch.nan_to_num(dkl, nan = 0)
         dkl = torch.mean(dkl, dim = -1)
+        """
+        dkl = log_prob.squeeze(-1)
         print("\n\nFEP: {}\n\n".format(torch.mean(dkl)))
         if(self.args.eta == None):
             curiosity = self.eta * dkl.unsqueeze(-1)
@@ -160,7 +158,8 @@ class Agent:
         else:
             curiosity = self.args.eta * dkl.unsqueeze(-1)
             self.args.eta = self.args.eta * self.args.eta_rate        
-        """
+            
+        print("\n\nWITH LOG PROB:", curiosity.shape)
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions):

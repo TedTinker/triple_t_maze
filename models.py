@@ -153,6 +153,9 @@ class Transitioner(nn.Module):
         dist = Normal(0,1)
         e = dist.sample(std.shape).to(device)
         x = mean + std*e
+        log_prob = Normal(mean, std).log_prob(mean + e * std) - \
+            torch.log(1 - action.pow(2) + 1e-6)
+        log_prob = torch.mean(log_prob, -1).unsqueeze(-1)
         
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
@@ -163,7 +166,7 @@ class Transitioner(nn.Module):
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
-        return(next_image, next_speed, mean, std)
+        return(next_image, next_speed, mean, std, log_prob)
 
 
 

@@ -21,18 +21,18 @@ entropy_3_curious_3 : --target_entropy 0 	--eta .010
 
 
 curious_0 :  --target_entropy -5 --alpha 0 --eta 0 
-curious_1 :  --target_entropy -5 --alpha 0 --eta .000000000000003 
-curious_2 :  --target_entropy -5 --alpha 0 --eta .000000000000006 
-curious_3 :  --target_entropy -5 --alpha 0 --eta .00000000000001 
-curious_4 :  --target_entropy -5 --alpha 0 --eta .00000000000003 
-curious_5 :  --target_entropy -5 --alpha 0 --eta .00000000000006 
-curious_6 :  --target_entropy -5 --alpha 0 --eta .0000000000001 
-curious_7 :  --target_entropy -5 --alpha 0 --eta .0000000000003
-curious_8 :  --target_entropy -5 --alpha 0 --eta .0000000000006 
-curious_9 :  --target_entropy -5 --alpha 0 --eta .000000000001 
-curious_10 : --target_entropy -5 --alpha 0 --eta .000000000003 
-curious_11 : --target_entropy -5 --alpha 0 --eta .000000000006 
-curious_12 : --target_entropy -5 --alpha 0 --eta .00000000001 
-curious_13 : --target_entropy -5 --alpha 0 --eta .00000000003 
-curious_14 : --target_entropy -5 --alpha 0 --eta .00000000006
-curious_15 : --target_entropy -5 --alpha 0 --eta .0000000001 
+curious_1 :  --target_entropy -5 --alpha 0 --eta .000001
+curious_2 :  --target_entropy -5 --alpha 0 --eta .000005
+curious_3 :  --target_entropy -5 --alpha 0 --eta .00001
+curious_4 :  --target_entropy -5 --alpha 0 --eta .00005
+curious_5 :  --target_entropy -5 --alpha 0 --eta .0001
+curious_6 :  --target_entropy -5 --alpha 0 --eta .0005
+curious_7 :  --target_entropy -5 --alpha 0 --eta .001
+curious_8 :  --target_entropy -5 --alpha 0 --eta .005
+curious_9 :  --target_entropy -5 --alpha 0 --eta .01
+curious_10 : --target_entropy -5 --alpha 0 --eta .05
+curious_11 : --target_entropy -5 --alpha 0 --eta .1
+curious_12 : --target_entropy -5 --alpha 0 --eta .5
+curious_13 : --target_entropy -5 --alpha 0 --eta 1
+curious_14 : --target_entropy -5 --alpha 0 --eta 5
+curious_15 : --target_entropy -5 --alpha 0 --eta 10

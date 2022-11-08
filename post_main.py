@@ -230,10 +230,7 @@ def make_end_pics(order):
     for folder in all_folders:
         training_name = "_".join(folder.split("_")[:-1])
         plot_dict_dict[training_name].append(torch.load("saves/" + folder + "/plot_dict.pt"))
-                
-    print("\n\nGetting plot mins/maxes...")
-    print("Duration: {}".format(duration()))
-        
+                        
     rew_min_max = get_min_max("rew", plot_dict_dict, True)
     pun_min_max = get_min_max("pun", plot_dict_dict, True)
     ext_min_max = get_min_max("ext", plot_dict_dict)
@@ -246,16 +243,13 @@ def make_end_pics(order):
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
     
     mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max]
-    
-    print("\n\nGot plot mins/maxes...")
-    print("Duration: {}".format(duration()))
-    
+        
     for training_name, plot_dict_list in plot_dict_dict.items():
         for i, plot_dict in enumerate(plot_dict_list):
             plots(plot_dict, mins_maxs, folder = plot_dict["folder"] + "/plots")
-            print("\n\nOne plot done...")
-            print("Duration: {}".format(duration()))
-        plots(plot_dict_list, mins_maxs, folder = "saves/" + training_name + "_shared")
+        print("Starting many-plot...")
+        print("Duration: {}".format(duration()))    
+        plots(plot_dict_list, mins_maxs, folder = "saves/" + training_name + "_shared") # THIS TAKES FOOOOREEEEVER
         print("Many-plot done...")
         print("Duration: {}".format(duration()))
 
@@ -276,10 +270,7 @@ def make_end_pics(order):
         for i, image in enumerate(images):
             new_image.paste(image, (i*image.size[0], 0))
         new_image.save("saves/all_{}_plots.png".format(training_name))
-        
-        print("Done with {}...".format(training_name))
-        print("Duration: {}".format(duration()))
-    
+            
     # Predictions
     for training_name in order:
         os.mkdir("saves/{}_predictions".format(training_name))
@@ -350,8 +341,6 @@ if(args.explore_type[0] != "("):
     plot_all_positions(args.explore_type)
     print("\n\nDone with {}!".format(args.explore_type))
 else:
-    print("Starting!")
-    print("Duration: {}".format(duration()))
     order = args.explore_type[1:-1]
     order = order.split("+")
     if(order[-1] != "break"): order.append("break")
@@ -363,14 +352,8 @@ else:
             rows.append(row) ; row = []
     order = rows
     make_end_pics(order)
-    print("\n\nDone with end pics...")
-    print("Duration: {}".format(duration()))
     make_together_pic(order)
-    print("\n\nDone with together pic...")
-    print("Duration: {}".format(duration()))
     make_mega_vid(order)
-    print("\n\nDone!")
-    print("Duration: {}".format(duration()))
 
 
 

@@ -582,7 +582,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         
     ax.title.set_text("Kind of Exit")
     ax.set_xlabel("Episodes")
-    ax.set_ylabel("Which Victory")
+    ax.set_ylabel("Which Exit")
     
 
 
