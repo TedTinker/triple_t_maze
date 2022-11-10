@@ -463,19 +463,11 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Agent losses
     if(many):
-        loss_dict_list = [{
-            "trans" : d["losses"][:,0],
-            "alpha" : d["losses"][:,1],
-            "actor" : d["losses"][:,2],
-            "crit1" : d["losses"][:,3],
-            "crit2" : d["losses"][:,4],
-        } for d in plot_dict]
-        
-        trans_xs, low_trans, trans, high_trans = get_quantiles(loss_dict_list, "trans")
-        alpha_xs, low_alpha, alpha, high_alpha = get_quantiles(loss_dict_list, "alpha")
-        actor_xs, low_actor, actor, high_actor = get_quantiles(loss_dict_list, "actor")
-        crit1_xs, low_crit1, crit1, high_crit1 = get_quantiles(loss_dict_list, "crit1")
-        crit2_xs, low_crit2, crit2, high_crit2 = get_quantiles(loss_dict_list, "crit2")
+        trans_xs, low_trans, trans, high_trans = get_quantiles(plot_dict, "trans")
+        alpha_xs, low_alpha, alpha, high_alpha = get_quantiles(plot_dict, "alpha")
+        actor_xs, low_actor, actor, high_actor = get_quantiles(plot_dict, "actor")
+        crit1_xs, low_crit1, crit1, high_crit1 = get_quantiles(plot_dict, "crit1")
+        crit2_xs, low_crit2, crit2, high_crit2 = get_quantiles(plot_dict, "crit2")
         
         _, trans_y = get_x_y(trans) ; _, low_trans_y = get_x_y(low_trans)  ; _, high_trans_y = get_x_y(high_trans)
         _, alpha_y = get_x_y(alpha) ; _, low_alpha_y = get_x_y(low_alpha)  ; _, high_alpha_y = get_x_y(high_alpha)
@@ -484,11 +476,11 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         _, crit2_y = get_x_y(crit2) ; _, low_crit2_y = get_x_y(low_crit2)  ; _, high_crit2_y = get_x_y(high_crit2)
         
     else:
-        trans = plot_dict["losses"][:,0]
-        alpha = plot_dict["losses"][:,1]
-        actor = plot_dict["losses"][:,2]
-        crit1 = plot_dict["losses"][:,3]
-        crit2 = plot_dict["losses"][:,4]
+        trans = plot_dict["trans"]
+        alpha = plot_dict["alpha"]
+        actor = plot_dict["actor"]
+        crit1 = plot_dict["crit1"]
+        crit2 = plot_dict["crit2"]
         
         trans_xs, trans_y = get_x_y(trans)
         alpha_xs, alpha_y = get_x_y(alpha)

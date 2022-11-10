@@ -190,28 +190,12 @@ def tuple_min_max(min_max_list):
 def get_min_max(this, plot_dict_dict, cumulative = False):
     plot_dict_list = [] 
     for key in plot_dict_dict.keys(): plot_dict_list += plot_dict_dict[key]
-    these = [plot_dict[this] for plot_dict in plot_dict_list]
+    these = [[i for i in plot_dict[this] if i != None] for plot_dict in plot_dict_list]
+    these = [t for t in these if t != []]
+    these = np.array(these)
     if(cumulative):
-        these = [[t for t in this if t != None] for this in these]
-        these = [sum(this) for this in these]
-        return((min(these), max(these)))
-    if(type(these[0]) == list):
-        these = [[t for t in this if t != None] for this in these]
-        mins = [min(this) for this in these]
-        maxs = [max(this) for this in these]
-        return((min(mins), max(maxs)))
-    min_max_lists = [] 
-    for this in these:
-        this_min_max_list = []
-        for column in this.T:
-            that = [t for t in column.tolist() if t != None]
-            if(len(that) == 0): this_min_max_list.append((0,0))
-            else:               this_min_max_list.append((min(that), max(that)))
-        min_max_lists.append(this_min_max_list)
-    min_max_list = []
-    for i in range(len(min_max_lists[0])):
-        min_max_list.append(tuple_min_max([min_max_lists[j][i] for j in range(len(min_max_lists))]))
-    return(min_max_list)
+        these = np.cumsum(these, -1)
+    return(np.amin(these), np.amax(these))
 
 
 
@@ -236,7 +220,12 @@ def make_end_pics(order):
     ext_min_max = get_min_max("ext", plot_dict_dict)
     cur_min_max = get_min_max("cur", plot_dict_dict)
     ent_min_max = get_min_max("ent", plot_dict_dict)
-    trans_min_max, alpha_min_max, actor_min_max, critic1_min_max, critic2_min_max = get_min_max("losses", plot_dict_dict)
+    trans_min_max = get_min_max("trans", plot_dict_dict)
+    alpha_min_max = get_min_max("alpha", plot_dict_dict)
+    actor_min_max = get_min_max("actor", plot_dict_dict)
+    critic1_min_max = get_min_max("crit1", plot_dict_dict)
+    critic2_min_max = get_min_max("crit2", plot_dict_dict)
+
         
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 

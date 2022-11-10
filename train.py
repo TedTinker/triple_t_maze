@@ -150,7 +150,11 @@ class Trainer():
                     "ext"         : self.ext, 
                     "cur"         : self.int_cur,
                     "ent"         : self.int_ent,
-                    "losses"      : self.losses}
+                    "trans"       : self.losses[:,0],
+                    "alpha"       : self.losses[:,1],
+                    "actor"       : self.losses[:,2],
+                    "crit1"       : self.losses[:,3],
+                    "crit2"       : self.losses[:,4]}
                 torch.save(plot_dict, folder + "/plot_dict.pt")
                 self.close_env(True)
                 break
