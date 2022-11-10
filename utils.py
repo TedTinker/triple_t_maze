@@ -62,7 +62,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
+parser.add_argument('--epochs_per_arena',   type=int,   default = (10, 10, 10))#(1000, 2000, 4000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -74,8 +74,8 @@ parser.add_argument("--tau",                type=float, default = .05)  # For so
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 250)
+parser.add_argument('--show_and_save',      type=int,   default = 5)#250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 5)#250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -352,21 +352,13 @@ def normalize(this):
     return(this)
 
 def get_quantiles(plot_dict_list, name):
-    lists = [plot_dict[name] for plot_dict in plot_dict_list]
-    q05 = []
-    med = []
-    q95 = []
-    for i in range(len(lists[0])):
-        mini_list = [l[i] for l in lists if l[i] != None]
-        if(mini_list == []):
-            q05.append(None)
-            med.append(None)
-            q95.append(None)
-        else:
-            q05.append(np.quantile(mini_list, .05))
-            med.append(np.quantile(mini_list, .50))
-            q95.append(np.quantile(mini_list, .95))
-    return(q05, med, q95)
+    xs = [i for i, l in enumerate(plot_dict_list[0][name]) if l != None]
+    lists = np.array([[i for i in plot_dict[name] if i != None] for plot_dict in plot_dict_list])    
+    q05 = np.quantile(lists, .05, 0)
+    med = np.quantile(lists, .50, 0)
+    q95 = np.quantile(lists, .95, 0)
+    return(xs, q05, med, q95)
+    
     
 
 line_transparency = .5 ; fill_transparency = .1
@@ -376,25 +368,24 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     else:                        many = False ; epochs = len(plot_dict["rew"])
     
     fig, axs = plt.subplots(6, 1, figsize = (7, 30))
-    xs = [i for i in range(1, epochs + 1)]
-    
+    xs = [i for i in range(epochs)]
     
     
     # Cumulative rewards
     ax = axs[0]
     if(many): 
-        low_rew, rew, high_rew = get_quantiles(plot_dict, "rew")
-        low_pun, pun, high_pun = get_quantiles(plot_dict, "pun")
+        rew_xs, low_rew, rew, high_rew = get_quantiles(plot_dict, "rew")
+        pun_xs, low_pun, pun, high_pun = get_quantiles(plot_dict, "pun")
         low_rew = np.cumsum(low_rew) ; rew = np.cumsum(rew) ; high_rew = np.cumsum(high_rew)
         low_pun = np.cumsum(low_pun) ; pun = np.cumsum(pun) ; high_pun = np.cumsum(high_pun)
-        ax.fill_between(xs, low_rew, high_rew, color = "turquoise", alpha = 2*fill_transparency, linewidth = 0)
-        ax.fill_between(xs, low_pun, high_pun, color = "pink", alpha = 2*fill_transparency, linewidth = 0)
+        ax.fill_between(rew_xs, low_rew, high_rew, color = "turquoise", alpha = 2*fill_transparency, linewidth = 0)
+        ax.fill_between(pun_xs, low_pun, high_pun, color = "pink", alpha = 2*fill_transparency, linewidth = 0)
     else:
         rew = plot_dict["rew"] ; rew = np.cumsum(rew)
         pun = plot_dict["pun"] ; pun = np.cumsum(pun)
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
-    ax.plot(xs, rew, color = "turquoise", alpha = 2*line_transparency)
-    ax.plot(xs, pun, color = "pink", alpha = 2*line_transparency)
+    ax.plot([x for x in range(len(rew))], rew, color = "turquoise", alpha = 2*line_transparency)
+    ax.plot([x for x in range(len(pun))], pun, color = "pink", alpha = 2*line_transparency)
     ax.set_xlabel("Time")
     ax.set_ylabel("Rewards/Punishments")
     ax.title.set_text("Cumulative Rewards and Punishments")
@@ -406,28 +397,29 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     # Extrinsic, intrinsic
     ax = axs[1]
     if(many):
-        low_ext, ext, high_ext = get_quantiles(plot_dict, "ext")
-        low_cur, cur, high_cur = get_quantiles(plot_dict, "cur")
-        low_ent, ent, high_ent = get_quantiles(plot_dict, "ent")
-        low_ext_x, low_ext_y = get_x_y(low_ext) ; high_ext_x, high_ext_y = get_x_y(high_ext)
-        low_cur_x, low_cur_y = get_x_y(low_cur) ; high_cur_x, high_cur_y = get_x_y(high_cur)
-        low_ent_x, low_ent_y = get_x_y(low_ent) ; high_ent_x, high_ent_y = get_x_y(high_ent)
-        ax.fill_between(low_ext_x, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency, linewidth = 0)
-        ax.fill_between(low_cur_x, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency, linewidth = 0)
-        ax.fill_between(low_ent_x, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency, linewidth = 0)
+        ext_xs, low_ext, ext, high_ext = get_quantiles(plot_dict, "ext")
+        cur_xs, low_cur, cur, high_cur = get_quantiles(plot_dict, "cur")
+        ent_xs, low_ent, ent, high_ent = get_quantiles(plot_dict, "ent")
+        _, low_ext_y = get_x_y(low_ext) ; _, high_ext_y = get_x_y(high_ext)
+        _, low_cur_y = get_x_y(low_cur) ; _, high_cur_y = get_x_y(high_cur)
+        _, low_ent_y = get_x_y(low_ent) ; _, high_ent_y = get_x_y(high_ent)
+        ax.fill_between(ext_xs, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(cur_xs, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(ent_xs, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency, linewidth = 0)
     else:
         ext = plot_dict["ext"] ; cur = plot_dict["cur"] ; ent = plot_dict["ent"]
+        ext_xs = None ; cur_xs = None ; ent_xs = None
         
     ex, ey       = get_x_y(ext)
     icx, icy     = get_x_y(cur)
     iex, iey     = get_x_y(ent)
 
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
-    ax.plot(ex,  ey,  color = "red", alpha = line_transparency, label = "Extrinsic")
+    ax.plot(ext_xs if ext_xs != None else ex,  ey,  color = "red", alpha = line_transparency, label = "Extrinsic")
     if(not all(i == 0 for i in icy)):
-        ax.plot(icx, icy, color = "green", alpha = line_transparency, label = "ln Curiosity")
+        ax.plot(cur_xs if cur_xs != None else icx, icy, color = "green", alpha = line_transparency, label = "ln Curiosity")
     if(not all(i == 0 for i in iey)):
-        ax.plot(iex, iey, color = "blue", alpha = line_transparency, label = "sq Entropy")
+        ax.plot(ent_xs if ent_xs != None else iex, iey, color = "blue", alpha = line_transparency, label = "sq Entropy")
     ax.legend(loc = 'upper left')
     ax.set_ylim(mins_maxs[1])
     
@@ -479,17 +471,17 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
             "crit2" : d["losses"][:,4],
         } for d in plot_dict]
         
-        low_trans, trans, high_trans = get_quantiles(loss_dict_list, "trans")
-        low_alpha, alpha, high_alpha = get_quantiles(loss_dict_list, "alpha")
-        low_actor, actor, high_actor = get_quantiles(loss_dict_list, "actor")
-        low_crit1, crit1, high_crit1 = get_quantiles(loss_dict_list, "crit1")
-        low_crit2, crit2, high_crit2 = get_quantiles(loss_dict_list, "crit2")
+        trans_xs, low_trans, trans, high_trans = get_quantiles(loss_dict_list, "trans")
+        alpha_xs, low_alpha, alpha, high_alpha = get_quantiles(loss_dict_list, "alpha")
+        actor_xs, low_actor, actor, high_actor = get_quantiles(loss_dict_list, "actor")
+        crit1_xs, low_crit1, crit1, high_crit1 = get_quantiles(loss_dict_list, "crit1")
+        crit2_xs, low_crit2, crit2, high_crit2 = get_quantiles(loss_dict_list, "crit2")
         
-        trans_x, trans_y = get_x_y(trans) ; _, low_trans_y = get_x_y(low_trans)  ; _, high_trans_y = get_x_y(high_trans)
-        alpha_x, alpha_y = get_x_y(alpha) ; _, low_alpha_y = get_x_y(low_alpha)  ; _, high_alpha_y = get_x_y(high_alpha)
-        actor_x, actor_y = get_x_y(actor) ; _, low_actor_y = get_x_y(low_actor)  ; _, high_actor_y = get_x_y(high_actor)
-        crit1_x, crit1_y = get_x_y(crit1) ; _, low_crit1_y = get_x_y(low_crit1)  ; _, high_crit1_y = get_x_y(high_crit1)
-        crit2_x, crit2_y = get_x_y(crit2) ; _, low_crit2_y = get_x_y(low_crit2)  ; _, high_crit2_y = get_x_y(high_crit2)
+        _, trans_y = get_x_y(trans) ; _, low_trans_y = get_x_y(low_trans)  ; _, high_trans_y = get_x_y(high_trans)
+        _, alpha_y = get_x_y(alpha) ; _, low_alpha_y = get_x_y(low_alpha)  ; _, high_alpha_y = get_x_y(high_alpha)
+        _, actor_y = get_x_y(actor) ; _, low_actor_y = get_x_y(low_actor)  ; _, high_actor_y = get_x_y(high_actor)
+        _, crit1_y = get_x_y(crit1) ; _, low_crit1_y = get_x_y(low_crit1)  ; _, high_crit1_y = get_x_y(high_crit1)
+        _, crit2_y = get_x_y(crit2) ; _, low_crit2_y = get_x_y(low_crit2)  ; _, high_crit2_y = get_x_y(high_crit2)
         
     else:
         trans = plot_dict["losses"][:,0]
@@ -498,11 +490,11 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         crit1 = plot_dict["losses"][:,3]
         crit2 = plot_dict["losses"][:,4]
         
-        trans_x, trans_y = get_x_y(trans)
-        alpha_x, alpha_y = get_x_y(alpha)
-        actor_x, actor_y = get_x_y(actor)
-        crit1_x, crit1_y = get_x_y(crit1)
-        crit2_x, crit2_y = get_x_y(crit2)
+        trans_xs, trans_y = get_x_y(trans)
+        alpha_xs, alpha_y = get_x_y(alpha)
+        actor_xs, actor_y = get_x_y(actor)
+        crit1_xs, crit1_y = get_x_y(crit1)
+        crit2_xs, crit2_y = get_x_y(crit2)
     
     if(len(alpha) == len([a for a in alpha if a == None])):
         no_alpha = True 
@@ -511,10 +503,10 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Trans losses
     ax = axs[3]
-    if(many): ax.fill_between(trans_x, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency, linewidth = 0)
-    ax.plot(trans_x, trans_y, color = "green", alpha = line_transparency, label = "ln Trans")
+    if(many): ax.fill_between(trans_xs, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency, linewidth = 0)
+    ax.plot(trans_xs, trans_y, color = "green", alpha = line_transparency, label = "ln Trans")
     ax.legend(loc = 'upper left')
-    divide_arenas(trans_x, ax)
+    divide_arenas(trans_xs, ax)
     ax.set_ylim(mins_maxs[2])
     ax.set_xlabel("Epochs")
     ax.set_ylabel("ln Trans losses")
@@ -522,8 +514,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Plot losses for actor, critics, and alpha
     ax1 = axs[4]
-    if(many): ax1.fill_between(actor_x, low_actor_y, high_actor_y, color = "red", alpha = fill_transparency, linewidth = 0)
-    ax1.plot(actor_x, actor_y, color='red', alpha = line_transparency, label = "Actor")
+    if(many): ax1.fill_between(actor_xs, low_actor_y, high_actor_y, color = "red", alpha = fill_transparency, linewidth = 0)
+    ax1.plot(actor_xs, actor_y, color='red', alpha = line_transparency, label = "Actor")
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Actor losses")
     ax1.legend(loc = 'upper left')
@@ -531,10 +523,10 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
 
     ax2 = ax1.twinx()
     if(many): 
-        ax2.fill_between(crit1_x, low_crit1_y, high_crit1_y, color = "blue", alpha = fill_transparency, linewidth = 0)
-        ax2.fill_between(crit2_x, low_crit2_y, high_crit2_y, color = "blue", alpha = fill_transparency, linewidth = 0)
-    ax2.plot(crit1_x, crit1_y, color='blue', alpha = line_transparency, linestyle = "--", label = "Critic")
-    ax2.plot(crit2_x, crit2_y, color='blue', alpha = line_transparency, linestyle = ":",  label = "Critic")
+        ax2.fill_between(crit1_xs, low_crit1_y, high_crit1_y, color = "blue", alpha = fill_transparency, linewidth = 0)
+        ax2.fill_between(crit2_xs, low_crit2_y, high_crit2_y, color = "blue", alpha = fill_transparency, linewidth = 0)
+    ax2.plot(crit1_xs, crit1_y, color='blue', alpha = line_transparency, linestyle = "--", label = "Critic")
+    ax2.plot(crit2_xs, crit2_y, color='blue', alpha = line_transparency, linestyle = ":",  label = "Critic")
     ax2.set_ylabel("ln Critic losses")
     ax2.legend(loc = 'lower left')
     ax2.set_ylim(mins_maxs[4])
@@ -542,13 +534,13 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     if(not no_alpha):
         ax3 = ax1.twinx()
         ax3.spines["right"].set_position(("axes", 1.2))
-        if(many): ax3.fill_between(alpha_x, low_alpha_y, high_alpha_y, color = (0,0,0,fill_transparency), linewidth = 0)
-        ax3.plot(alpha_x, alpha_y, color = (0,0,0,line_transparency), label = "Alpha")
+        if(many): ax3.fill_between(alpha_xs, low_alpha_y, high_alpha_y, color = (0,0,0,fill_transparency), linewidth = 0)
+        ax3.plot(alpha_xs, alpha_y, color = (0,0,0,line_transparency), label = "Alpha")
         ax3.set_ylabel("Alpha losses")
         ax3.legend(loc = 'upper right')
         ax3.set_ylim(mins_maxs[5])
         
-    divide_arenas(actor_x, ax1)
+    divide_arenas(xs, ax1)
     
     ax1.title.set_text("Agent losses")
     
@@ -573,12 +565,12 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
             which = dict["which"]
             which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
             which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
-            ax.scatter(xs, which, color = "gray", alpha = 1/len(plot_dict))
+            ax.scatter([x for x in range(len(which))], which, color = "gray", alpha = 1/len(plot_dict))
     else:
         which = plot_dict["which"]
         which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
         which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
-        ax.scatter(xs, which, color = "gray")
+        ax.scatter([x for x in range(len(which))], which, color = "gray")
         
     ax.title.set_text("Kind of Exit")
     ax.set_xlabel("Episodes")
