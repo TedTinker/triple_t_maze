@@ -94,7 +94,7 @@ class Agent:
             next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
-        pred_next_images, pred_next_speeds, means, stds, log_prob = self.transitioner(
+        pred_next_images, pred_next_speeds = self.transitioner(
             images[:,:-self.args.lookahead].detach(), 
             speeds[:,:-self.args.lookahead].detach(), 
             prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
@@ -134,32 +134,11 @@ class Agent:
             curiosity = self.args.eta * trans_errors.unsqueeze(-1)
             self.args.eta = self.args.eta * self.args.eta_rate
             
-        print("\n\MSE: {}\n\n".format(torch.mean(trans_errors)))
+        print("\n\nMSE: {}\n\n".format(torch.mean(trans_errors)))
         
         """
         # My attempt at real FEP
-        means *= masks.detach() ; stds *= masks.detach()
-        #p_means = torch.tile(torch.mean(means, dim = (0,1)).unsqueeze(0).unsqueeze(0), (means.shape[0], means.shape[1], 1))*masks.detach()
-        #p_stds  = torch.tile(torch.mean(stds,  dim = (0,1)).unsqueeze(0).unsqueeze(0), (stds.shape[0],  stds.shape[1],  1))*masks.detach()
-        p_means = means
-        p_stds  = .0000001 * torch.ones(means.shape)*masks.detach()
-        dkl = .5 * (
-            (torch.pow(p_means - means, 2) / torch.pow(p_stds, 2)) + \
-                (torch.pow(stds,2) / torch.pow(p_stds, 2)) - \
-                    torch.log(torch.pow(stds,2) / torch.pow(p_stds,2)) - 1)
-        dkl = torch.nan_to_num(dkl, nan = 0)
-        dkl = torch.mean(dkl, dim = -1)
         """
-        dkl = log_prob.squeeze(-1)
-        print("\n\nFEP: {}\n\n".format(torch.mean(dkl)))
-        if(self.args.eta == None):
-            curiosity = self.eta * dkl.unsqueeze(-1)
-            self.eta = self.eta * self.args.eta_rate
-        else:
-            curiosity = self.args.eta * dkl.unsqueeze(-1)
-            self.args.eta = self.args.eta * self.args.eta_rate        
-            
-        print("\n\nWITH LOG PROB:", curiosity.shape)
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions):

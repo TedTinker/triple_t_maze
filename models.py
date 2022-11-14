@@ -4,6 +4,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from torchinfo import summary as torch_summary
+from blitz.modules import BayesianLinear
 
 from utils import args, device, ConstrainedConv2d, delete_these, \
     init_weights, shape_out, flatten_shape
@@ -62,10 +63,7 @@ class Transitioner(nn.Module):
             nn.Linear(2*self.args.lookahead, self.args.hidden_size),
             nn.LeakyReLU())
         
-        self.mean = nn.Sequential(
-            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size))
-        self.std  = nn.Sequential(
-            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size))
+        self.bayes = BayesianLinear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size, bias = False)
 
         self.next_image_1 = nn.Sequential(
             nn.Linear(self.args.hidden_size, self.args.hidden_size),
@@ -111,8 +109,7 @@ class Transitioner(nn.Module):
         self.lstm.apply(init_weights)
         self.encode.apply(init_weights)
         self.actions_in.apply(init_weights)
-        self.mean.apply(init_weights)
-        self.std.apply(init_weights)
+        self.bayes.apply(init_weights)
         self.next_image_1.apply(init_weights)
         self.next_image_2.apply(init_weights)
         self.next_speed.apply(init_weights)
@@ -147,16 +144,7 @@ class Transitioner(nn.Module):
         encoding, _ = self.just_encode(image, speed, prev_action, hidden)
         action = self.actions_in(action)
         x = torch.cat((encoding, action), dim=-1)
-        
-        mean = self.mean(x)
-        std = self.std(x).exp()
-        dist = Normal(0,1)
-        e = dist.sample(std.shape).to(device)
-        x = mean + std*e
-        log_prob = Normal(mean, std).log_prob(mean + e * std) - \
-            torch.log(1 - action.pow(2) + 1e-6)
-        log_prob = torch.mean(log_prob, -1).unsqueeze(-1)
-        
+        x = self.bayes(x)
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
         next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
@@ -166,7 +154,7 @@ class Transitioner(nn.Module):
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
-        return(next_image, next_speed, mean, std, log_prob)
+        return(next_image, next_speed)
 
 
 
