@@ -276,7 +276,7 @@ def norm_speed_to_speed(args, s):
     s = round(s)
     return(s)
     
-def plot_some_predictions(args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, steps):
+def plot_some_predictions(args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, steps, epoch):
     pred_images = []
     for ex in range(args.predictions_to_plot):
         batch_num = choice([i for i in range(actions.shape[0])])
@@ -308,7 +308,7 @@ def plot_some_predictions(args, images, speeds, pred_next_images, pred_next_spee
         ax3.axis('off')
         title = ""
         for i in range(args.lookahead):
-            title += "Step {} action: {} degrees, {} speed".format(step_num+i, yaws[i], spes[i])
+            title += "Epoch {}. Step {} action: {} degrees, {} speed".format(epoch, step_num+i, yaws[i], spes[i])
             if(i < args.lookahead): title += "\n"
         fig.suptitle(title)
         fig.tight_layout()

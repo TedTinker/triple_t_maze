@@ -4,7 +4,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from torchinfo import summary as torch_summary
-from blitz.modules import BayesianLinear
+from blitz.modules import BayesianLinear, BayesianConv2d
 
 from utils import args, device, ConstrainedConv2d, delete_these, \
     init_weights, shape_out, flatten_shape
@@ -63,10 +63,11 @@ class Transitioner(nn.Module):
             nn.Linear(2*self.args.lookahead, self.args.hidden_size),
             nn.LeakyReLU())
         
-        self.bayes = BayesianLinear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size, bias = False)
+        #Using this layer works, but I think it might be difficult to utylize. 
+        #self.bayes = BayesianLinear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size, bias = False)
 
         self.next_image_1 = nn.Sequential(
-            nn.Linear(self.args.hidden_size, self.args.hidden_size),
+            nn.Linear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size),
             nn.LeakyReLU(),
             nn.Linear(self.args.hidden_size, 32 * self.args.image_size//4 * self.args.image_size//4),
             nn.LeakyReLU()) 
@@ -92,15 +93,14 @@ class Transitioner(nn.Module):
             nn.Upsample(
                 scale_factor = 2,
                 mode = "bilinear", align_corners=True),
-            ConstrainedConv2d(
+            BayesianConv2d(
                 in_channels = 16, 
                 out_channels = 4,
-                kernel_size = (1,1)),
-            #nn.Tanh()) 
-            )
+                kernel_size = (1,1),
+                bias = False))
 
         self.next_speed = nn.Sequential(
-            nn.Linear(self.args.hidden_size, 1)) 
+            BayesianLinear(self.args.encode_size + self.args.hidden_size, 1, bias = False)) 
 
         self.image_in_1.apply(init_weights)
         self.image_in_2.apply(init_weights)
@@ -109,7 +109,7 @@ class Transitioner(nn.Module):
         self.lstm.apply(init_weights)
         self.encode.apply(init_weights)
         self.actions_in.apply(init_weights)
-        self.bayes.apply(init_weights)
+        #self.bayes.apply(init_weights)
         self.next_image_1.apply(init_weights)
         self.next_image_2.apply(init_weights)
         self.next_speed.apply(init_weights)
@@ -144,7 +144,7 @@ class Transitioner(nn.Module):
         encoding, _ = self.just_encode(image, speed, prev_action, hidden)
         action = self.actions_in(action)
         x = torch.cat((encoding, action), dim=-1)
-        x = self.bayes(x)
+        #x = self.bayes(x)
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
         next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)

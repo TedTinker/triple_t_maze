@@ -61,7 +61,7 @@ class Agent:
         action = self.actor.get_action(encoded).detach()
         return action, hidden
     
-    def learn(self, batch_size, iterations, num = -1, plot_predictions = False):
+    def learn(self, batch_size, iterations, num = -1, plot_predictions = False, epoch = 0):
         if(iterations != 1):
             losses = []; extrinsic = []; intrinsic_curiosity = []; intrinsic_entropy = []
             for i in range(iterations): 
@@ -141,8 +141,7 @@ class Agent:
         """
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
-        if(plot_predictions):
-            plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps)
+        if(plot_predictions): plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()

@@ -105,7 +105,7 @@ class Trainer():
                 else:            self.punishments.append(rewards); self.rewards.append(0)
         
         losses, extrinsic, intrinsic_curiosity, intrinsic_entropy = \
-            self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot_predictions = plot_predictions)
+            self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot_predictions = plot_predictions, epoch = self.e)
         if(append):
             self.ext.append(extrinsic)
             self.int_cur.append(intrinsic_curiosity)

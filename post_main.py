@@ -225,7 +225,6 @@ def make_end_pics(order):
     actor_min_max = get_min_max("actor", plot_dict_dict)
     critic1_min_max = get_min_max("crit1", plot_dict_dict)
     critic2_min_max = get_min_max("crit2", plot_dict_dict)
-
         
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
