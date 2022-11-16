@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import MultivariateNormal
 import torch.optim as optim
+from blitz.losses import kl_divergence_from_nn as b_kl_loss
 
 import numpy as np
 from math import log
@@ -113,8 +114,10 @@ class Agent:
         flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
         
         trans_errors = F.mse_loss(flat_pred, flat_real, reduction = "none") 
-        
         trans_loss = torch.sum(trans_errors.clone())
+        kl_loss = .1 * b_kl_loss(self.transitioner)
+        print("\n\nMSE: {}. KL: {}.\n\n".format(trans_loss, kl_loss))
+        trans_loss += kl_loss
         self.trans_optimizer.zero_grad()
         trans_loss.backward()
         self.trans_optimizer.step()
@@ -153,8 +156,8 @@ class Agent:
         Q_target1_next = self.critic1_target(next_encoded.detach(), next_action.detach())
         Q_target2_next = self.critic2_target(next_encoded.detach(), next_action.detach())
         Q_target_next = torch.min(Q_target1_next, Q_target2_next)
-        if self.args.alpha == None: Q_targets = rewards.cpu() + (self.args.gamma * (1 - dones.cpu()) * (Q_target_next.cpu() - self.alpha * log_pis_next.cpu()))
-        else:                       Q_targets = rewards.cpu() + (self.args.gamma * (1 - dones.cpu()) * (Q_target_next.cpu() - self.args.alpha * log_pis_next.cpu()))
+        if self.args.alpha == None: Q_targets = rewards.cpu() + (self.args.GAMMA * (1 - dones.cpu()) * (Q_target_next.cpu() - self.alpha * log_pis_next.cpu()))
+        else:                       Q_targets = rewards.cpu() + (self.args.GAMMA * (1 - dones.cpu()) * (Q_target_next.cpu() - self.args.alpha * log_pis_next.cpu()))
         
         Q_1 = self.critic1(encoded, actions).cpu()
         critic1_loss = 0.5*F.mse_loss(Q_1*masks.detach().cpu(), Q_targets.detach()*masks.detach().cpu())

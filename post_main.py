@@ -231,11 +231,15 @@ def make_end_pics(order):
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
     
     mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max]
+    
+    print("\n\nStarting plots.\n{}\n\n".format(duration()))
         
     for training_name, plot_dict_list in plot_dict_dict.items():
         for i, plot_dict in enumerate(plot_dict_list):
             plots(plot_dict, mins_maxs, folder = plot_dict["folder"] + "/plots")  
+            print("\n\nPlot done.\n{}\n\n".format(duration()))
         plots(plot_dict_list, mins_maxs, folder = "saves/" + training_name + "_shared")
+        print("\n\nMany plots done.\n{}\n\n".format(duration()))
 
     for training_name in order:
         folders = []
