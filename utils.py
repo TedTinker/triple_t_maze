@@ -71,6 +71,7 @@ parser.add_argument("--alpha",              type=float, default = None) # Soft-A
 parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
+parser.add_argument("--kl_weight",          type=float, default = .1)   # Scale Bayes DKL
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
 
 # Plotting and saving

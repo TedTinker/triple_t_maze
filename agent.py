@@ -115,7 +115,7 @@ class Agent:
         
         trans_errors = F.mse_loss(flat_pred, flat_real, reduction = "none") 
         trans_loss = torch.sum(trans_errors.clone())
-        kl_loss = .1 * b_kl_loss(self.transitioner)
+        kl_loss = args.kl_weight * b_kl_loss(self.transitioner)
         print("\n\nMSE: {}. KL: {}.\n\n".format(trans_loss, kl_loss))
         trans_loss += kl_loss
         self.trans_optimizer.zero_grad()
@@ -137,11 +137,18 @@ class Agent:
             curiosity = self.args.eta * trans_errors.unsqueeze(-1)
             self.args.eta = self.args.eta * self.args.eta_rate
             
-        print("\n\nMSE: {}\n\n".format(torch.mean(trans_errors)))
+        print("\n\nMSE curiosity: {}, {}.\n\n".format(curiosity.shape, torch.sum(curiosity)))
         
-        """
         # My attempt at real FEP
-        """
+        kl_loss = torch.tile(kl_loss, curiosity.shape).squeeze(-1)
+        if(self.args.eta == None):
+            curiosity = self.eta * kl_loss.unsqueeze(-1)
+            self.eta = self.eta * self.args.eta_rate
+        else:
+            curiosity = self.args.eta * kl_loss.unsqueeze(-1)
+            self.args.eta = self.args.eta * self.args.eta_rate
+            
+        print("\n\nFEB curiosity: {}, {}.\n\n".format(curiosity.shape, torch.sum(curiosity)))
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions): plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)

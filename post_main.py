@@ -195,6 +195,7 @@ def get_min_max(this, plot_dict_dict, cumulative = False):
     these = np.array(these)
     if(cumulative):
         these = np.cumsum(these, -1)
+    if(these.shape == (0,)): return((0,0))
     return(np.amin(these), np.amax(these))
 
 
@@ -342,6 +343,8 @@ else:
     make_end_pics(order)
     make_together_pic(order)
     make_mega_vid(order)
+    print("\n\nFinished!")
+    print(duration())
 
 
 
