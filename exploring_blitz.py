@@ -1,137 +1,3 @@
-#%%
-import torch
-from torch import nn 
-import torch.nn.functional as F
-from torch.distributions import Normal
-from torchinfo import summary as torch_summary
-from blitz.modules import BayesianLinear, BayesianConv2d
-
-import os 
-os.chdir(r"/home/ted/Desktop/triple_t_maze")
-
-from utils import args, device, ConstrainedConv2d, delete_these, \
-    init_weights, shape_out, flatten_shape
-
-
-
-class Example(nn.Module):
-
-    def __init__(self):
-        super(Example, self).__init__()
-
-        self.lin_1 = nn.Sequential(
-            nn.Linear(4, 8),
-            nn.LeakyReLU())
-        
-        self.bayes_lin = BayesianLinear(8, 12, bias = False)
-
-        self.bayes_conv = BayesianConv2d(
-            in_channels = 2,
-            out_channels = 4,
-            kernel_size = (1,1))
-
-        self.lin_1.apply(init_weights)
-        self.bayes_lin.apply(init_weights)
-        self.bayes_conv.apply(init_weights)
-        self.to(device)
-
-    def forward(self, x):
-        x = x.to(device)
-        x = self.lin_1(x)
-        before_bayes = x
-        x_1 = self.bayes_lin(x)
-        x = torch.reshape(x, (x.shape[0], 2, 2, 2))
-        x_2 = self.bayes_conv(x)
-        return(before_bayes.cpu(), x_1.cpu(), x_2.cpu())
-
-
-
-example = Example()
-
-print("\n\n")
-print(example)
-print()
-print(torch_summary(example, (1,4)))
-
-print("\n\nlin_1:")
-print(example.lin_1[0].weight.shape)
-
-print("\n\nBayes lin:")
-print("weight mu:\t {}".format(example.bayes_lin.weight_mu.shape))
-print("weight rho:\t {}".format(example.bayes_lin.weight_rho.shape))
-print("bias mu:\t {}".format(example.bayes_lin.bias_mu.shape))
-print("bias rho:\t {}".format(example.bayes_lin.bias_rho.shape))
-
-print("\nweight sampler (TrainableRandomDistribution):")
-print("mu:\t {}".format(example.bayes_lin.weight_sampler.mu.shape))
-print("rho:\t {}".format(example.bayes_lin.weight_sampler.rho.shape))
-print("sigma:\t {}".format(example.bayes_lin.weight_sampler.sigma.shape))
-print("w:\t {}".format(example.bayes_lin.weight_sampler.w.shape))
-print("eps_w:\t {}".format(example.bayes_lin.weight_sampler.eps_w.shape))
-print("log_post sample:\t {}".format(example.bayes_lin.weight_sampler.log_posterior()))
-
-#print("\nbias sampler (TrainableRandomDistribution):")
-#print("mu:\t {}".format(example.bayes_lin.bias_sampler.mu.shape))
-#print("rho:\t {}".format(example.bayes_lin.bias_sampler.rho.shape))
-#print("sigma:\t {}".format(example.bayes_lin.bias_sampler.sigma.shape))
-#print("w:\t {}".format(example.bayes_lin.bias_sampler.w.shape))
-#print("eps_w:\t {}".format(example.bayes_lin.bias_sampler.eps_w.shape))
-#print("log_post:\t {}".format(example.bayes_lin.bias_sampler.log_posterior()))
-
-print("\nweight prior dist (PriorWeightDistribution):")
-print("sigma1: {}. sigma2: {}.".format(example.bayes_lin.weight_prior_dist.sigma1, example.bayes_lin.weight_prior_dist.sigma2))
-print("dist1:\t {}".format(example.bayes_lin.weight_prior_dist.dist1))
-print("dist2:\t {}".format(example.bayes_lin.weight_prior_dist.dist2))
-print("log_prior:\t {}".format(example.bayes_lin.weight_prior_dist.log_prior(example.bayes_lin.weight_sampler.w)))
-
-#print("\nbias prior dist (PriorWeightDistribution):")
-#print("sigma1: {}. sigma2: {}.".format(example.bayes_lin.bias_prior_dist.sigma1, example.bayes_lin.bias_prior_dist.sigma2))
-#print("dist1:\t {}".format(example.bayes_lin.bias_prior_dist.dist1))
-#print("dist2:\t {}".format(example.bayes_lin.bias_prior_dist.dist2))
-#print("log_prior:\t {}".format(example.bayes_lin.bias_prior_dist.log_prior(example.bayes_lin.bias_sampler.w)))
-
-print("\n\nBayes conv:")
-print("weight mu:\t {}".format(example.bayes_conv.weight_mu.shape))
-print("weight rho:\t {}".format(example.bayes_conv.weight_rho.shape))
-print("bias mu:\t {}".format(example.bayes_conv.bias_mu.shape))
-print("bias rho:\t {}".format(example.bayes_conv.bias_rho.shape))
-
-print("\nweight sampler (TrainableRandomDistribution):")
-print("mu:\t {}".format(example.bayes_conv.weight_sampler.mu.shape))
-print("rho:\t {}".format(example.bayes_conv.weight_sampler.rho.shape))
-print("sigma:\t {}".format(example.bayes_conv.weight_sampler.sigma.shape))
-print("w:\t {}".format(example.bayes_conv.weight_sampler.w.shape))
-print("eps_w:\t {}".format(example.bayes_conv.weight_sampler.eps_w.shape))
-print("log_post sample:\t {}".format(example.bayes_conv.weight_sampler.log_posterior()))
-
-#print("\nbias sampler (TrainableRandomDistribution):")
-#print("mu:\t {}".format(example.bayes_conv.bias_sampler.mu.shape))
-#print("rho:\t {}".format(example.bayes_conv.bias_sampler.rho.shape))
-#print("sigma:\t {}".format(example.bayes_conv.bias_sampler.sigma.shape))
-#print("w:\t {}".format(example.bayes_conv.bias_sampler.w.shape))
-#print("eps_w:\t {}".format(example.bayes_conv.bias_sampler.eps_w.shape))
-#print("log_post:\t {}".format(example.bayes_conv.bias_sampler.log_posterior()))
-
-print("\nweight prior dist (PriorWeightDistribution):")
-print("sigma1: {}. sigma2: {}.".format(example.bayes_conv.weight_prior_dist.sigma1, example.bayes_conv.weight_prior_dist.sigma2))
-print("dist1:\t {}".format(example.bayes_conv.weight_prior_dist.dist1))
-print("dist2:\t {}".format(example.bayes_conv.weight_prior_dist.dist2))
-print("log_prior:\t {}".format(example.bayes_conv.weight_prior_dist.log_prior(example.bayes_conv.weight_sampler.w)))
-
-#print("\nbias prior dist (PriorWeightDistribution):")
-#print("sigma1: {}. sigma2: {}.".format(example.bayes_conv.bias_prior_dist.sigma1, example.bayes_conv.bias_prior_dist.sigma2))
-#print("dist1:\t {}".format(example.bayes_conv.bias_prior_dist.dist1))
-#print("dist2:\t {}".format(example.bayes_conv.bias_prior_dist.dist2))
-#print("log_prior:\t {}".format(example.bayes_conv.bias_prior_dist.log_prior(example.bayes_conv.bias_sampler.w)))
-
-
-print(example.bayes_lin.log_prior)
-print(example.bayes_lin.log_variational_posterior)
-
-    
-# %%
-
-
 # %%
 
 import matplotlib.pyplot as plt 
@@ -188,6 +54,41 @@ class Example(nn.Module):
         print(torch_summary(self, (1,1)))
         print("\n\n")
 
+        print("Bayes lin:")
+        print("weight mu:\t {}".format(self.lin[2].weight_mu.shape))
+        print("weight rho:\t {}".format(self.lin[2].weight_rho.shape))
+        print("bias mu:\t {}".format(self.lin[2].bias_mu.shape))
+        print("bias rho:\t {}".format(self.lin[2].bias_rho.shape))
+
+        print("\nweight sampler (TrainableRandomDistribution):")
+        print("mu:\t {}".format(self.lin[2].weight_sampler.mu.shape))
+        print("rho:\t {}".format(self.lin[2].weight_sampler.rho.shape))
+        print("sigma:\t {}".format(self.lin[2].weight_sampler.sigma.shape))
+        print("w:\t {}".format(self.lin[2].weight_sampler.w.shape))
+        print("eps_w:\t {}".format(self.lin[2].weight_sampler.eps_w.shape))
+        print("log_post sample:\t {}".format(self.lin[2].weight_sampler.log_posterior()))
+
+        print("\nbias sampler (TrainableRandomDistribution):")
+        print("mu:\t {}".format(self.lin[2].bias_sampler.mu.shape))
+        print("rho:\t {}".format(self.lin[2].bias_sampler.rho.shape))
+        print("sigma:\t {}".format(self.lin[2].bias_sampler.sigma.shape))
+        print("w:\t {}".format(self.lin[2].bias_sampler.w.shape))
+        print("eps_w:\t {}".format(self.lin[2].bias_sampler.eps_w.shape))
+        print("log_post:\t {}".format(self.lin[2].bias_sampler.log_posterior()))
+
+        print("\nweight prior dist (PriorWeightDistribution):")
+        print("sigma1: {}. sigma2: {}.".format(self.lin[2].weight_prior_dist.sigma1, self.lin[2].weight_prior_dist.sigma2))
+        print("dist1:\t {}".format(self.lin[2].weight_prior_dist.dist1))
+        print("dist2:\t {}".format(self.lin[2].weight_prior_dist.dist2))
+        print("log_prior:\t {}".format(self.lin[2].weight_prior_dist.log_prior(self.lin[2].weight_sampler.w)))
+
+        print("\nbias prior dist (PriorWeightDistribution):")
+        print("sigma1: {}. sigma2: {}.".format(self.lin[2].bias_prior_dist.sigma1, self.lin[2].bias_prior_dist.sigma2))
+        print("dist1:\t {}".format(self.lin[2].bias_prior_dist.dist1))
+        print("dist2:\t {}".format(self.lin[2].bias_prior_dist.dist2))
+        print("log_prior:\t {}".format(self.lin[2].bias_prior_dist.log_prior(self.lin[2].bias_sampler.w)))
+        print("\n\n")
+
     def forward(self, x):
         x = x.to(device)
         x = self.lin(x)
@@ -197,6 +98,13 @@ example = Example()
 opt = optim.Adam(params=example.parameters(), lr=.001) 
 
 
+def dkl(mu_1, rho_1, mu_2, rho_2):
+    sigma_1 = torch.pow(torch.log1p(torch.exp(rho_1)), 2)
+    sigma_2 = torch.pow(torch.log1p(torch.exp(rho_2)), 2)
+    term_1 = torch.pow(mu_2 - mu_1, 2) / sigma_2 
+    term_2 = sigma_1 / sigma_2 
+    term_3 = torch.log(term_2)
+    return((.5 * (term_1 + term_2 - term_3 - 1)).sum())
 
 def epoch(source):
     if(source == "test"):  example.eval()  ; Xs = test_xs  ; Ys = test_ys 
@@ -205,7 +113,7 @@ def epoch(source):
     pred = example(Xs) 
     if(source == "train"):
         mse_loss = F.mse_loss(pred, Ys)
-        kl_loss  = .00001 * b_kl_loss(example)
+        kl_loss  = .0001 * b_kl_loss(example)
         #print("MSE: {}. KL: {}.".format(mse_loss.item(), kl_loss.item()))
         loss = mse_loss + kl_loss
         opt.zero_grad()
@@ -236,7 +144,14 @@ def plot(train_pred, test_pred, title = "", means = None, stds = None):
 epochs = 1000000
 for i in range(1, epochs+1):
     train_ys = x_to_y(train_xs) ; test_ys = x_to_y(test_xs)
+    
+    weights_before = example.lin[2].weight_sampler.mu.clone(), example.lin[2].weight_sampler.rho.clone(), example.lin[2].bias_sampler.mu.clone(), example.lin[2].bias_sampler.rho.clone()
     train_pred = epoch("train").detach() ; test_pred = epoch("test").detach()
+    weights_after = example.lin[2].weight_sampler.mu.clone(), example.lin[2].weight_sampler.rho.clone(), example.lin[2].bias_sampler.mu.clone(), example.lin[2].bias_sampler.rho.clone()
+
+    print(dkl(weights_before[0], weights_before[1], 
+              weights_after[0], weights_after[1]))
+
     if(i == 1 or i%1000 == 0 or i == epochs): 
         preds = []
         for _ in range(100):
@@ -247,6 +162,7 @@ for i in range(1, epochs+1):
         stds = torch.std(preds, dim = 1)
         plot(train_pred, test_pred, "Epoch {}".format(i), means, stds)
         print("\n\n\n\n\n")
+
 
 
 

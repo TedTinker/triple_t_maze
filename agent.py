@@ -11,7 +11,7 @@ import numpy as np
 from math import log
 from copy import deepcopy
 
-from utils import args, device, plot_some_predictions
+from utils import args, device, plot_some_predictions, dkl
 from buffer import RecurrentReplayBuffer
 from models import Transitioner, Actor, Critic
 
@@ -118,9 +118,22 @@ class Agent:
         kl_loss = args.kl_weight * b_kl_loss(self.transitioner)
         print("\n\nMSE: {}. KL: {}.\n\n".format(trans_loss, kl_loss))
         trans_loss += kl_loss
+        
+        trans_copy = self.transitioner.clone()
+        
+        weights_before = (self.transitioner.bayes.weight_sampler.mu.clone(), 
+                          self.transitioner.bayes.weight_sampler.rho.clone(), 
+                          self.transitioner.bayes.bias_sampler.mu.clone(), 
+                          self.transitioner.bayes.bias_sampler.rho.clone())
+        
         self.trans_optimizer.zero_grad()
         trans_loss.backward()
         self.trans_optimizer.step()
+        
+        weights_after = (self.transitioner.bayes.weight_sampler.mu.clone(), 
+                          self.transitioner.bayes.weight_sampler.rho.clone(), 
+                          self.transitioner.bayes.bias_sampler.mu.clone(), 
+                          self.transitioner.bayes.bias_sampler.rho.clone())
                 
         # Get encodings for other modules
         with torch.no_grad():
@@ -128,27 +141,31 @@ class Agent:
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
         
-        # "Naive" curiosity, not actually FEP
-        trans_errors = sum([trans_errors[:,:,i] for i in range(trans_errors.shape[-1])])
-        if(self.args.eta == None):
-            curiosity = self.eta * trans_errors.unsqueeze(-1)
-            self.eta = self.eta * self.args.eta_rate
-        else:
-            curiosity = self.args.eta * trans_errors.unsqueeze(-1)
-            self.args.eta = self.args.eta * self.args.eta_rate
-            
-        print("\n\nMSE curiosity: {}, {}.\n\n".format(curiosity.shape, torch.sum(curiosity)))
+        if(args.naive_curiosity):
+            trans_errors = sum([trans_errors[:,:,i] for i in range(trans_errors.shape[-1])])
+            if(self.args.eta == None):
+                curiosity = self.eta * trans_errors.unsqueeze(-1)
+                self.eta = self.eta * self.args.eta_rate
+            else:
+                curiosity = self.args.eta * trans_errors.unsqueeze(-1)
+                self.args.eta = self.args.eta * self.args.eta_rate
+                
+            print("\n\nMSE curiosity: {}, {}.\n\n".format(curiosity.shape, torch.sum(curiosity)))
         
-        # My attempt at real FEP
-        kl_loss = torch.tile(kl_loss, curiosity.shape).squeeze(-1)
-        if(self.args.eta == None):
-            curiosity = self.eta * kl_loss.unsqueeze(-1)
-            self.eta = self.eta * self.args.eta_rate
-        else:
-            curiosity = self.args.eta * kl_loss.unsqueeze(-1)
-            self.args.eta = self.args.eta * self.args.eta_rate
+        if(not args.naive_curiosity):
+            weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
+                dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+                
+            weight_change = torch.tile(weight_change, rewards.shape).squeeze(-1) 
             
-        print("\n\nFEB curiosity: {}, {}.\n\n".format(curiosity.shape, torch.sum(curiosity)))
+            if(self.args.eta == None):
+                curiosity = self.eta * weight_change.unsqueeze(-1)
+                self.eta = self.eta * self.args.eta_rate
+            else:
+                curiosity = self.args.eta * weight_change.unsqueeze(-1)
+                self.args.eta = self.args.eta * self.args.eta_rate
+                
+            print("\n\nFEB curiosity: {}, {}.\n\n".format(curiosity.shape, torch.sum(curiosity)))
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions): plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)

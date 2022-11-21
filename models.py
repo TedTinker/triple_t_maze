@@ -63,7 +63,6 @@ class Transitioner(nn.Module):
             nn.Linear(2*self.args.lookahead, self.args.hidden_size),
             nn.LeakyReLU())
         
-        #Using this layer works, but I think it might be difficult to utylize. 
         self.bayes = BayesianLinear(self.args.encode_size + self.args.hidden_size, self.args.hidden_size)
 
         self.next_image_1 = nn.Sequential(

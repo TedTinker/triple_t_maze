@@ -69,6 +69,7 @@ parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
 parser.add_argument("--alpha",              type=float, default = None) # Soft-Actor-Critic entropy aim
 parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
+parser.add_argument("--naive_curiosity",    type=bool,  default = False)# Which kind of curiosity
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--kl_weight",          type=float, default = .1)   # Scale Bayes DKL
@@ -138,6 +139,16 @@ if args.id != 0:
         already_done = True
         
 print("\nID: {}_{}.\nDevice: {}.\n".format(args.explore_type, str(args.id).zfill(3), device))
+
+
+
+def dkl(mu_1, rho_1, mu_2, rho_2):
+    sigma_1 = torch.pow(torch.log1p(torch.exp(rho_1)), 2)
+    sigma_2 = torch.pow(torch.log1p(torch.exp(rho_2)), 2)
+    term_1 = torch.pow(mu_2 - mu_1, 2) / sigma_2 
+    term_2 = sigma_1 / sigma_2 
+    term_3 = torch.log(term_2)
+    return((.5 * (term_1 + term_2 - term_3 - 1)).sum())
 
 
 
