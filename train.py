@@ -72,7 +72,7 @@ class Trainer():
         self.exits = []; self.exits_rolled = []; self.which = []
         self.ext= []; self.int_cur = []; self.int_ent = []
         self.rewards = []; self.punishments = []
-        self.losses = np.array([[None]*5])
+        self.losses = np.array([[None]*6])
         
     def get_GUI(self):
         if(self.env_gui == None):
@@ -150,11 +150,12 @@ class Trainer():
                     "ext"         : self.ext, 
                     "cur"         : self.int_cur,
                     "ent"         : self.int_ent,
-                    "trans"       : self.losses[:,0],
-                    "alpha"       : self.losses[:,1],
-                    "actor"       : self.losses[:,2],
-                    "crit1"       : self.losses[:,3],
-                    "crit2"       : self.losses[:,4]}
+                    "mse"         : self.losses[:,0],
+                    "dkl"         : self.losses[:,1],
+                    "alpha"       : self.losses[:,2],
+                    "actor"       : self.losses[:,3],
+                    "crit1"       : self.losses[:,4],
+                    "crit2"       : self.losses[:,5]}
                 torch.save(plot_dict, folder + "/plot_dict.pt")
                 self.close_env(True)
                 break

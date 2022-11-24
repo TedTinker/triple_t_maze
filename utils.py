@@ -48,7 +48,7 @@ parser.add_argument('--batch_size',         type=int,   default = 128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
-parser.add_argument('--trans_lr',           type=float, default = .001)
+parser.add_argument('--trans_lr',           type=float, default = .000005)
 parser.add_argument('--actor_lr',           type=float, default = .001) 
 parser.add_argument('--critic_lr',          type=float, default = .001) 
 parser.add_argument('--alpha_lr',           type=float, default = .005) 
@@ -63,7 +63,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
+parser.add_argument('--epochs_per_arena',   type=int,   default = (10, 10, 10))#(1000, 2000, 4000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -72,13 +72,13 @@ parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-A
 parser.add_argument("--naive_curiosity",    type=bool,  default = False)# Which kind of curiosity
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
-parser.add_argument("--kl_weight",          type=float, default = .1)   # Scale Bayes DKL
+parser.add_argument("--kl_weight",          type=float, default = .00001)   # Scale Bayes DKL
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 250)
+parser.add_argument('--show_and_save',      type=int,   default = 5)#250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 5)#250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -476,26 +476,30 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Agent losses
     if(many):
-        trans_xs, low_trans, trans, high_trans = get_quantiles(plot_dict, "trans")
+        mse_xs, low_mse, mse, high_mse = get_quantiles(plot_dict, "mse")
+        dkl_xs, low_dkl, dkl, high_dkl = get_quantiles(plot_dict, "dkl")
         alpha_xs, low_alpha, alpha, high_alpha = get_quantiles(plot_dict, "alpha")
         actor_xs, low_actor, actor, high_actor = get_quantiles(plot_dict, "actor")
         crit1_xs, low_crit1, crit1, high_crit1 = get_quantiles(plot_dict, "crit1")
         crit2_xs, low_crit2, crit2, high_crit2 = get_quantiles(plot_dict, "crit2")
         
-        _, trans_y = get_x_y(trans) ; _, low_trans_y = get_x_y(low_trans)  ; _, high_trans_y = get_x_y(high_trans)
+        _, mse_y = get_x_y(mse) ; _, low_mse_y = get_x_y(low_mse)  ; _, high_mse_y = get_x_y(high_mse)
+        _, dkl_y = get_x_y(dkl) ; _, low_dkl_y = get_x_y(low_dkl)  ; _, high_dkl_y = get_x_y(high_dkl)
         _, alpha_y = get_x_y(alpha) ; _, low_alpha_y = get_x_y(low_alpha)  ; _, high_alpha_y = get_x_y(high_alpha)
         _, actor_y = get_x_y(actor) ; _, low_actor_y = get_x_y(low_actor)  ; _, high_actor_y = get_x_y(high_actor)
         _, crit1_y = get_x_y(crit1) ; _, low_crit1_y = get_x_y(low_crit1)  ; _, high_crit1_y = get_x_y(high_crit1)
         _, crit2_y = get_x_y(crit2) ; _, low_crit2_y = get_x_y(low_crit2)  ; _, high_crit2_y = get_x_y(high_crit2)
         
     else:
-        trans = plot_dict["trans"]
+        mse = plot_dict["mse"]
+        dkl = plot_dict["dkl"]
         alpha = plot_dict["alpha"]
         actor = plot_dict["actor"]
         crit1 = plot_dict["crit1"]
         crit2 = plot_dict["crit2"]
         
-        trans_xs, trans_y = get_x_y(trans)
+        mse_xs, mse_y = get_x_y(mse)
+        dkl_xs, dkl_y = get_x_y(dkl)
         alpha_xs, alpha_y = get_x_y(alpha)
         actor_xs, actor_y = get_x_y(actor)
         crit1_xs, crit1_y = get_x_y(crit1)
@@ -508,14 +512,17 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     # Trans losses
     ax = axs[3]
-    if(many): ax.fill_between(trans_xs, low_trans_y, high_trans_y, color = "green", alpha = fill_transparency, linewidth = 0)
-    ax.plot(trans_xs, trans_y, color = "green", alpha = line_transparency, label = "ln Trans")
+    if(many): 
+        ax.fill_between(mse_xs, low_mse_y, high_mse_y, color = "green", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(dkl_xs, low_dkl_y, high_dkl_y, color = "green", alpha = fill_transparency, linewidth = 0)
+    ax.plot(mse_xs, mse_y, color = "green", alpha = line_transparency, label = "ln mse")
+    ax.plot(dkl_xs, dkl_y, color = "red", alpha = line_transparency, label = "ln dkl")
     ax.legend(loc = 'upper left')
-    divide_arenas(trans_xs, ax)
+    divide_arenas(dkl_xs, ax)
     ax.set_ylim(mins_maxs[2])
     ax.set_xlabel("Epochs")
     ax.set_ylabel("ln Trans losses")
-    ax.title.set_text("Transitioner loss")
+    ax.title.set_text("Transitioner losses")
     
     # Plot losses for actor, critics, and alpha
     ax1 = axs[4]

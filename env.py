@@ -80,7 +80,7 @@ class Env():
 
     def render(self, view = "body"):
         if(view == "body" or "both"):
-            rgbd, _ = self.get_obs()
+            rgbd, _, _ = self.get_obs()
             rgb = (rgbd[:,:,0:3] + 1)/2
             plt.figure(figsize = (5,5))
             plt.imshow(rgb)
@@ -157,8 +157,8 @@ class Env():
             (self.args.max_speed - self.args.min_speed)
         yaw, spe = self.real_yaw_spe(yaw, spe)
         self.change_velocity(yaw, spe)
-      
         p.stepSimulation(physicsClientId = self.arena.physicsClient)
+        
         self.body.pos, self.body.yaw, self.body.spe = self.arena.get_pos_yaw_spe(self.body.num)
         end, which, reward = self.arena.end_collisions(self.body.num)
         col = self.arena.other_collisions(self.body.num)
@@ -198,7 +198,7 @@ class Env():
 
 
 if __name__ == "__main__":
-    env = Env("3", GUI = True)
+    env = Env("1", GUI = True)
     env.reset()   
     env.render("body") 
     end = False

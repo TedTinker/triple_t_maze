@@ -139,6 +139,8 @@ class Transitioner(nn.Module):
         return(encoding, hidden) 
 
     def forward(self, image, speed, prev_action, action, hidden = None):
+        if(len(image.shape) == 4):  sequence = False
+        else:                       sequence = True
         action = action.to(device) ; prev_action = prev_action.to(device)
         encoding, _ = self.just_encode(image, speed, prev_action, hidden)
         action = self.actions_in(action)
@@ -146,14 +148,19 @@ class Transitioner(nn.Module):
         x = self.bayes(x)
         next_image = self.next_image_1(x)
         batch_size = next_image.shape[0]
-        next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
+        if(sequence): next_image = next_image.reshape(next_image.shape[0]*next_image.shape[1], 32, self.args.image_size//4, self.args.image_size//4)
+        else:         next_image = next_image.reshape(next_image.shape[0], 32, self.args.image_size//4, self.args.image_size//4)
         next_image = self.next_image_2(next_image)   
-        next_image = next_image.reshape(batch_size, next_image.shape[0]//batch_size, 4, self.args.image_size, self.args.image_size)
-        next_image = next_image.permute(0, 1, 3, 4, 2)
+        if(sequence): 
+            next_image = next_image.reshape(batch_size, next_image.shape[0]//batch_size, 4, self.args.image_size, self.args.image_size)
+            next_image = next_image.permute(0, 1, 3, 4, 2)
+        else:
+            next_image = next_image.reshape(batch_size, 4, self.args.image_size, self.args.image_size)
+            next_image = next_image.permute(0, 2, 3, 1)
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
-        return(next_image, next_speed)
+        return(next_image, next_speed, hidden)
 
 
 

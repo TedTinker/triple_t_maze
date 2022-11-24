@@ -221,12 +221,14 @@ def make_end_pics(order):
     ext_min_max = get_min_max("ext", plot_dict_dict)
     cur_min_max = get_min_max("cur", plot_dict_dict)
     ent_min_max = get_min_max("ent", plot_dict_dict)
-    trans_min_max = get_min_max("trans", plot_dict_dict)
+    mse_min_max = get_min_max("mse", plot_dict_dict)
+    dkl_min_max = get_min_max("dkl", plot_dict_dict)
     alpha_min_max = get_min_max("alpha", plot_dict_dict)
     actor_min_max = get_min_max("actor", plot_dict_dict)
     critic1_min_max = get_min_max("crit1", plot_dict_dict)
     critic2_min_max = get_min_max("crit2", plot_dict_dict)
-        
+    
+    trans_min_max = tuple_min_max([mse_min_max, dkl_min_max])    
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
