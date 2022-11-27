@@ -149,9 +149,6 @@ for i in range(1, epochs+1):
     train_pred = epoch("train").detach() ; test_pred = epoch("test").detach()
     weights_after = example.lin[2].weight_sampler.mu.clone(), example.lin[2].weight_sampler.rho.clone(), example.lin[2].bias_sampler.mu.clone(), example.lin[2].bias_sampler.rho.clone()
 
-    print(dkl(weights_before[0], weights_before[1], 
-              weights_after[0], weights_after[1]))
-
     if(i == 1 or i%1000 == 0 or i == epochs): 
         preds = []
         for _ in range(100):

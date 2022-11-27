@@ -167,6 +167,7 @@ class Arena():
         p.resetBaseVelocity(num, (x,y,0),(0,0,0), physicsClientId = self.physicsClient)
         p.changeVisualShape(num, -1, rgbaColor = color, physicsClientId = self.physicsClient)
         body = Body(num, pos, spe, inherent_roll, inherent_pitch, yaw, self.args)
+                
         return(body)
     
     def colorize(self):

@@ -48,7 +48,7 @@ parser.add_argument('--batch_size',         type=int,   default = 128)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
-parser.add_argument('--trans_lr',           type=float, default = .000005)
+parser.add_argument('--trans_lr',           type=float, default = .001)
 parser.add_argument('--actor_lr',           type=float, default = .001) 
 parser.add_argument('--critic_lr',          type=float, default = .001) 
 parser.add_argument('--alpha_lr',           type=float, default = .005) 
@@ -63,22 +63,22 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = (10, 10, 10))#(1000, 2000, 4000))
+parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
 parser.add_argument("--alpha",              type=float, default = None) # Soft-Actor-Critic entropy aim
 parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-Actor-Critic entropy aim
-parser.add_argument("--naive_curiosity",    type=bool,  default = False)# Which kind of curiosity
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
-parser.add_argument("--kl_weight",          type=float, default = .00001)   # Scale Bayes DKL
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
+parser.add_argument("--naive_curiosity",    type=bool,  default = True) # Which kind of curiosity
+parser.add_argument("--trans_train",        type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 5)#250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 5)#250)
+parser.add_argument('--show_and_save',      type=int,   default = 250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -373,7 +373,6 @@ def get_quantiles(plot_dict_list, name):
     return(xs, q05, med, q95)
     
     
-
 line_transparency = .5 ; fill_transparency = .1
 def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
@@ -593,8 +592,3 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     # Save
     plt.savefig(folder + "/plots" + ("_{}".format(name) if name != "" else "") + ".png")
     plt.close()
-
-
-
-
-# %%

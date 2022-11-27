@@ -10,7 +10,6 @@ from blitz.losses import kl_divergence_from_nn as b_kl_loss
 import numpy as np
 from math import log
 from copy import deepcopy
-from itertools import product
 
 from utils import args, device, plot_some_predictions, dkl
 from buffer import RecurrentReplayBuffer
@@ -96,59 +95,47 @@ class Agent:
             next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
-        
-        weight_changes = torch.zeros(rewards.shape).squeeze(-1)
+        pred_next_images, pred_next_speeds = self.transitioner(
+            images[:,:-self.args.lookahead].detach(), 
+            speeds[:,:-self.args.lookahead].detach(), 
+            prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
         
         flat_images = images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:]
         flat_images = flat_images.flatten(2)
+        flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
+        flat_pred_images = flat_pred_images.flatten(2)
+        
         flat_speeds = speeds[:,self.args.lookahead:]*masks.detach()[:,self.args.lookahead-1:]
         flat_speeds = flat_speeds
+        flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
+        flat_pred_speeds = flat_pred_speeds
+        
         flat_real = torch.cat([flat_images, flat_speeds], dim = -1)
+        flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
         
-        pred_next_images_list = []
-        pred_next_speeds_list = []
-        mse_losses = 0
-        dkl_losses = 0
-                
-        for x in range(weight_changes.shape[0]):
-                        
-            pred_next_images, pred_next_speeds, hidden = self.transitioner(
-                images[x,:-self.args.lookahead].detach(), 
-                speeds[x,:-self.args.lookahead].detach(), 
-                prev_actions[x,:-self.args.lookahead].detach(), 
-                sequential_actions[x].detach())
-            
-            pred_next_images_list.append(pred_next_images.unsqueeze(0))
-            pred_next_speeds_list.append(pred_next_speeds.unsqueeze(0))
-            flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
-            flat_pred_images = flat_pred_images.flatten(2)
-            flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
-            flat_pred_speeds = flat_pred_speeds
-            flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
+        trans_errors = F.mse_loss(flat_pred, flat_real, reduction = "none") 
+        mse_loss = torch.sum(trans_errors.clone())
+        dkl_loss = .1 * b_kl_loss(self.transitioner)
+        print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
+        trans_loss = mse_loss + dkl_loss
         
-            mse_loss = F.mse_loss(flat_pred[x], flat_real[x]) 
-            dkl_loss = args.kl_weight * b_kl_loss(self.transitioner)
-            mse_losses += mse_loss
-            dkl_losses += dkl_loss
-            trans_loss = mse_loss + dkl_loss
+        weights_before = (self.transitioner.bayes.weight_sampler.mu.clone(), 
+                    self.transitioner.bayes.weight_sampler.rho.clone(), 
+                    self.transitioner.bayes.bias_sampler.mu.clone(), 
+                    self.transitioner.bayes.bias_sampler.rho.clone())
         
-            weights_before = (self.transitioner.bayes.weight_sampler.mu.clone(), 
-                        self.transitioner.bayes.weight_sampler.rho.clone(), 
-                        self.transitioner.bayes.bias_sampler.mu.clone(), 
-                        self.transitioner.bayes.bias_sampler.rho.clone())
-            
-            self.trans_optimizer.zero_grad()
-            trans_loss.backward()
-            self.trans_optimizer.step()
+        self.trans_optimizer.zero_grad()
+        trans_loss.sum().backward()
+        self.trans_optimizer.step()
+    
+        weights_after = (self.transitioner.bayes.weight_sampler.mu.clone(), 
+                    self.transitioner.bayes.weight_sampler.rho.clone(), 
+                    self.transitioner.bayes.bias_sampler.mu.clone(), 
+                    self.transitioner.bayes.bias_sampler.rho.clone())
         
-            weights_after = (self.transitioner.bayes.weight_sampler.mu.clone(), 
-                        self.transitioner.bayes.weight_sampler.rho.clone(), 
-                        self.transitioner.bayes.bias_sampler.mu.clone(), 
-                        self.transitioner.bayes.bias_sampler.rho.clone())
-            
-            weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
-                dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
-            weight_changes[x] = torch.tile(weight_change,(1, weight_changes.shape[1]))
+        weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
+            dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+        weight_changes = weight_change
                 
         # Get encodings for other modules
         with torch.no_grad():
@@ -156,7 +143,7 @@ class Agent:
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
         
-        if(args.naive_curiosity):
+        if(self.args.naive_curiosity):
             trans_errors = sum([trans_errors[:,:,i] for i in range(trans_errors.shape[-1])])
             if(self.args.eta == None):
                 curiosity = self.eta * trans_errors.unsqueeze(-1)
@@ -165,24 +152,20 @@ class Agent:
                 curiosity = self.args.eta * trans_errors.unsqueeze(-1)
                 self.args.eta = self.args.eta * self.args.eta_rate
                 
-            print("\nMSE curiosity: {}, {}.\n".format(curiosity.shape, torch.sum(curiosity)))
+            print("\n\nMSE: {}\n\n".format(torch.mean(trans_errors)))
         
-        if(not args.naive_curiosity):
+        else:
             if(self.args.eta == None):
-                curiosity = self.eta * weight_changes.unsqueeze(-1)
+                curiosity = self.eta * weight_changes
                 self.eta = self.eta * self.args.eta_rate
             else:
-                curiosity = self.args.eta * weight_changes.unsqueeze(-1)
+                curiosity = self.args.eta * weight_changes
                 self.args.eta = self.args.eta * self.args.eta_rate
                 
             print("\nFEB curiosity: {}, {}.\n".format(curiosity.shape, torch.sum(curiosity)))
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
-        
-        if(plot_predictions): 
-            pred_next_images = torch.cat(pred_next_images_list, dim = 0)
-            pred_next_speeds = torch.cat(pred_next_speeds_list, dim = 0)
-            plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)
+        if(plot_predictions): plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)
             
         extrinsic = torch.mean(rewards*masks.detach()).item()
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()
@@ -265,13 +248,13 @@ class Agent:
             alpha_loss = None
             actor_loss = None
         
-        if(mse_losses != None): mse_losses = log(mse_losses.item())
-        if(dkl_losses != None): dkl_losses = log(dkl_losses.item())
+        if(mse_loss != None): mse_loss = log(mse_loss.item())
+        if(dkl_loss != None): dkl_loss = log(dkl_loss.item())
         if(alpha_loss != None): alpha_loss = alpha_loss.item()
         if(actor_loss != None): actor_loss = actor_loss.item()
         if(critic1_loss != None): critic1_loss = log(critic1_loss.item())
         if(critic2_loss != None): critic2_loss = log(critic2_loss.item())
-        losses = np.array([[mse_losses, dkl_losses, alpha_loss, actor_loss, critic1_loss, critic2_loss]])
+        losses = np.array([[mse_loss, dkl_loss, alpha_loss, actor_loss, critic1_loss, critic2_loss]])
         
         try:    intrinsic_entropy = (1 if intrinsic_entropy >= 0 else -1) * abs(intrinsic_entropy)**.5
         except: pass

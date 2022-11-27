@@ -1,22 +1,22 @@
-entropy_0_curious_0 : --target_entropy -5  	--eta 0 --alpha 0
-entropy_1_curious_0 : --target_entropy -2 	--eta 0 
-entropy_2_curious_0 : --target_entropy -1 	--eta 0 
-entropy_3_curious_0 : --target_entropy 0 	--eta 0 
+no_entropy_no_curious   : --target_entropy -5  	--eta 0 --alpha 0
+low_entropy_no_curious  : --target_entropy -2 	--eta 0 
+mid_entropy_no_curious  : --target_entropy -1 	--eta 0 
+high_entropy_no_curious : --target_entropy 0 		--eta 0 
 
-entropy_0_curious_1 : --target_entropy -5  	--eta .003 --alpha 0
-entropy_1_curious_1 : --target_entropy -2 	--eta .003 
-entropy_2_curious_1 : --target_entropy -1 	--eta .003 
-entropy_3_curious_1 : --target_entropy 0 	--eta .003 
+no_entropy_low_curious   : --target_entropy -5  	--eta .003 --alpha 0
+low_entropy_low_curious  : --target_entropy -2 	--eta .003 
+mid_entropy_low_curious  : --target_entropy -1 	--eta .003 
+high_entropy_low_curious : --target_entropy 0 	--eta .003 
 
-entropy_0_curious_2 : --target_entropy -5  	--eta .006 --alpha 0
-entropy_1_curious_2 : --target_entropy -2 	--eta .006 
-entropy_2_curious_2 : --target_entropy -1 	--eta .006 
-entropy_3_curious_2 : --target_entropy 0 	--eta .006 
+no_entropy_mid_curious   : --target_entropy -5  	--eta .006 --alpha 0
+low_entropy_mid_curious  : --target_entropy -2 	--eta .006 
+mid_entropy_mid_curious  : --target_entropy -1 	--eta .006 
+high_entropy_mid_curious : --target_entropy 0 	--eta .006 
 
-entropy_0_curious_3 : --target_entropy -5  	--eta .010 --alpha 0 
-entropy_1_curious_3 : --target_entropy -2 	--eta .010 
-entropy_2_curious_3 : --target_entropy -1 	--eta .010 
-entropy_3_curious_3 : --target_entropy 0 	--eta .010 
+no_entropy_high_curious   : --target_entropy -5  	--eta .010 --alpha 0 
+low_entropy_high_curious  : --target_entropy -2 	--eta .010 
+mid_entropy_high_curious  : --target_entropy -1 	--eta .010 
+high_entropy_high_curious : --target_entropy 0 	--eta .010 
 
 
 
@@ -36,3 +36,16 @@ curious_12 :  --target_entropy -5 --alpha 0 --eta .05
 curious_13 :  --target_entropy -5 --alpha 0 --eta .1
 curious_14 :  --target_entropy -5 --alpha 0 --eta .5
 curious_15 :  --target_entropy -5 --alpha 0 --eta 1
+
+
+batch_001      	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train batch   --trans_lr .001
+
+episodes_001   	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train episode --trans_lr .001
+episodes_0001   	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train episode --trans_lr .0001
+episodes_00001   	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train episode --trans_lr .00001
+episodes_000001   	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train episode --trans_lr .000001
+
+steps_0001      	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train step    --trans_lr .0001
+steps_00001      	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train step    --trans_lr .00001
+steps_000001      	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train step    --trans_lr .000001
+steps_0000001      	: --target_entropy -5  	--eta 0 --alpha 0 --trans_train step    --trans_lr .0000001
