@@ -37,6 +37,12 @@ class Agent:
         
         self.transitioner = Transitioner(self.args)
         self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr)     
+        
+        self.trans_clone = Transitioner(self.args)
+        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_lr)
+        
+        self.trans_clone_clone = Transitioner(self.args)
+        self.opt_clone_clone = optim.Adam(self.trans_clone_clone.parameters(), lr=self.args.trans_lr)
                            
         self.actor = Actor(self.args)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr)     
@@ -99,62 +105,156 @@ class Agent:
             next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
+                
+        pred_next_images, pred_next_speeds = self.transitioner(
+            images[:,:-self.args.lookahead].detach(), 
+            speeds[:,:-self.args.lookahead].detach(), 
+            prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
         
-
-
-        if(self.args.trans_train == "batch"):
-            pred_next_images, pred_next_speeds = self.transitioner(
+        flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
+        flat_pred_images = flat_pred_images.flatten(2)
+        flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
+        flat_pred_speeds = flat_pred_speeds
+        flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
+        
+        trans_errors = F.mse_loss(flat_pred, flat_real.detach(), reduction = "none") 
+        mse_loss = torch.sum(trans_errors.clone())
+        dkl_loss = self.args.dkl_rate * b_kl_loss(self.transitioner)
+        print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
+        trans_loss = mse_loss + dkl_loss
+        
+        self.trans_clone.load_state_dict(self.transitioner.state_dict()) # For curiosity
+        
+        self.trans_optimizer.zero_grad()
+        trans_loss.sum().backward()
+        self.trans_optimizer.step()
+        
+        
+        
+        if(self.args.weight_change_size == "batch" and self.args.naive_curiosity != "true"):
+            pred_next_images_, pred_next_speeds_ = self.trans_clone(
                 images[:,:-self.args.lookahead].detach(), 
                 speeds[:,:-self.args.lookahead].detach(), 
                 prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
             
-            flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
+            flat_pred_images = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
             flat_pred_images = flat_pred_images.flatten(2)
-            flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
+            flat_pred_speeds = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
             flat_pred_speeds = flat_pred_speeds
             flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
             
-            trans_errors = F.mse_loss(flat_pred, flat_real, reduction = "none") 
-            mse_loss = torch.sum(trans_errors.clone())
-            dkl_loss = self.args.dkl_rate * b_kl_loss(self.transitioner)
-            print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
-            trans_loss = mse_loss + dkl_loss
+            trans_errors_ = F.mse_loss(flat_pred, flat_real.detach(), reduction = "none") 
+            mse_loss_ = torch.sum(trans_errors_.clone())
+            dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
+            trans_loss_ = mse_loss_ + dkl_loss_
             
-            weights_before = (self.transitioner.bayes.weight_sampler.mu.clone(), 
-                        self.transitioner.bayes.weight_sampler.rho.clone(), 
-                        self.transitioner.bayes.bias_sampler.mu.clone(), 
-                        self.transitioner.bayes.bias_sampler.rho.clone())
+            weights_before = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
+                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
+                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
+                        self.trans_clone.bayes.bias_sampler.rho.clone())
             
-            self.trans_optimizer.zero_grad()
-            trans_loss.sum().backward()
-            self.trans_optimizer.step()
+            self.opt_clone.zero_grad()
+            trans_loss_.sum().backward()
+            self.opt_clone.step()
         
-            weights_after = (self.transitioner.bayes.weight_sampler.mu.clone(), 
-                        self.transitioner.bayes.weight_sampler.rho.clone(), 
-                        self.transitioner.bayes.bias_sampler.mu.clone(), 
-                        self.transitioner.bayes.bias_sampler.rho.clone())
+            weights_after = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
+                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
+                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
+                        self.trans_clone.bayes.bias_sampler.rho.clone())
             
             weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
                 dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
-            weight_changes = weight_change
+            weight_changes = torch.tile(weight_change, rewards.shape)
             
             
             
-        if(self.args.trans_train == "episode"):
-            pass 
-        
-        if(self.args.trans_train == "step"):
-            pass
-        
-        
+        if(self.args.weight_change_size == "episode" and self.args.naive_curiosity != "true"):
+            weight_changes = torch.zeros(rewards.shape)
+            weights_before = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
+                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
+                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
+                        self.trans_clone.bayes.bias_sampler.rho.clone())
+            for episode in range(weight_changes.shape[0]):
+                self.trans_clone_clone.load_state_dict(self.trans_clone.state_dict())
+                pred_next_images_, pred_next_speeds_ = self.trans_clone_clone(
+                    images[episode,:-self.args.lookahead].detach(), 
+                    speeds[episode,:-self.args.lookahead].detach(), 
+                    prev_actions[episode,:-self.args.lookahead].detach(), sequential_actions[episode].detach())
+                                
+                flat_pred_images = pred_next_images_*image_masks[episode].detach()[self.args.lookahead-1:]
+                flat_pred_images = flat_pred_images.flatten(1)
+                flat_pred_speeds = pred_next_speeds_*masks[episode].detach()[self.args.lookahead-1:]
+                flat_pred_speeds = flat_pred_speeds
+                flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
                 
+                trans_errors_ = F.mse_loss(flat_pred, flat_real[episode].detach(), reduction = "none") 
+                mse_loss_ = torch.sum(trans_errors_.clone())
+                dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone_clone)
+                trans_loss_ = mse_loss_ + dkl_loss_
+                
+                self.opt_clone_clone.zero_grad()
+                trans_loss_.sum().backward()
+                self.opt_clone_clone.step()
+            
+                weights_after = (self.trans_clone_clone.bayes.weight_sampler.mu.clone(), 
+                        self.trans_clone_clone.bayes.weight_sampler.rho.clone(), 
+                        self.trans_clone_clone.bayes.bias_sampler.mu.clone(), 
+                        self.trans_clone_clone.bayes.bias_sampler.rho.clone())
+                
+                weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
+                    dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+                weight_changes[episode] = weight_change
+            
+            
+        
+        if(self.args.weight_change_size == "step" and self.args.naive_curiosity != "true"):
+            weight_changes = torch.zeros(rewards.shape)
+            weights_before = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
+                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
+                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
+                        self.trans_clone.bayes.bias_sampler.rho.clone())
+            for episode in range(weight_changes.shape[0]):
+                hidden = None
+                for step in range(weight_changes.shape[1]):
+                    self.trans_clone_clone.load_state_dict(self.trans_clone.state_dict())
+                    pred_next_images, pred_next_speeds, hidden = self.trans_clone_clone(
+                        images[episode,step:step+self.args.lookahead].detach(), 
+                        speeds[episode,step:step+self.args.lookahead].detach(), 
+                        prev_actions[episode,step:step+self.args.lookahead].detach(), 
+                        sequential_actions[episode,step].unsqueeze(0).detach(), hidden.detach() if hidden != None else hidden)
+                    
+                    flat_pred_images = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
+                    flat_pred_images = flat_pred_images.flatten(2)
+                    flat_pred_speeds = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
+                    flat_pred_speeds = flat_pred_speeds
+                    flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
+                
+                    mse_loss_ = F.mse_loss(flat_pred[episode,step], flat_real[episode,step], reduction = "none") 
+                    dkl_loss_ = self.args.kl_weight * b_kl_loss(self.trans_clone_clone)
+                    trans_loss_ = mse_loss_ + dkl_loss_
+                    
+                    self.opt_clone_clone.zero_grad()
+                    trans_loss_.sum().backward()
+                    self.opt_clone_clone.step()
+                
+                    weights_after = (self.trans_clone_clone.bayes.weight_sampler.mu.clone(), 
+                            self.trans_clone_clone.bayes.weight_sampler.rho.clone(), 
+                            self.trans_clone_clone.bayes.bias_sampler.mu.clone(), 
+                            self.trans_clone_clone.bayes.bias_sampler.rho.clone())
+                    
+                    weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
+                        dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+                    weight_changes[episode,step] = weight_change        
+        
+        
+        
         # Get encodings for other modules
         with torch.no_grad():
             encoded, _ = self.transitioner.just_encode(images.detach(), speeds.detach(), prev_actions.detach())
             next_encoded = encoded[:,1:]
             encoded = encoded[:,:-1]
         
-        if(self.args.naive_curiosity):
+        if(self.args.naive_curiosity == "true"):
             trans_errors = sum([trans_errors[:,:,i] for i in range(trans_errors.shape[-1])]).unsqueeze(-1)
             if(self.args.eta == None):
                 curiosity = self.eta * trans_errors
@@ -163,7 +263,7 @@ class Agent:
                 curiosity = self.args.eta * trans_errors
                 self.args.eta = self.args.eta * self.args.eta_rate
                 
-            print("\n\nMSE: {}\n\n".format(torch.mean(trans_errors)))
+            print("\nMSE curiosity: {}, {}.\n".format(curiosity.shape, torch.sum(curiosity)))
         
         else:
             if(self.args.eta == None):
@@ -174,6 +274,8 @@ class Agent:
                 self.args.eta = self.args.eta * self.args.eta_rate
                 
             print("\nFEB curiosity: {}, {}.\n".format(curiosity.shape, torch.sum(curiosity)))
+            
+            
         
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions): plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)

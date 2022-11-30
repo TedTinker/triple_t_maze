@@ -73,8 +73,8 @@ parser.add_argument("--eta",                type=float, default = None) # Scale 
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
 parser.add_argument("--dkl_rate",           type=float, default = .1)   # Scale bayesian dkl
-parser.add_argument("--naive_curiosity",    type=bool,  default = True) # Which kind of curiosity
-parser.add_argument("--trans_train",        type=str,   default = "batch")  # "batch", "episode", "step"
+parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
+parser.add_argument("--weight_change_size", type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
