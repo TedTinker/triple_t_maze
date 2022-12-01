@@ -138,9 +138,43 @@ def plot(train_pred, test_pred, title = "", means = None, stds = None):
     plt.scatter(test_xs,  test_pred,  color = "red",  alpha = .6)
     plt.title("{}".format(title))
     plt.legend()
+    plt.savefig("saves/{}.png".format(title))
     plt.show()
     plt.close()
+    
+    
+    
+plt.figure(figsize=(10,10))
+plt.ylim((-3, 3))
+plt.plot(xs, ys, color = "black", alpha = 1)
+plt.title("cos(x) + sin(.6 * x)")
+plt.savefig("saves/start.png")
+plt.show()
+plt.close()
 
+plt.figure(figsize=(10,10))
+plt.ylim((-3, 3))
+plt.plot(xs, ys, color = "black", alpha = 1)
+plt.scatter(train_xs, train_ys, color = "black", alpha = .3)
+plt.scatter(test_xs,  test_ys,  color = "black", alpha = .3)
+plt.title("cos(x) + sin(.6 * x) with noise")
+plt.savefig("saves/start_noise.png")
+plt.show()
+plt.close()
+
+plt.figure(figsize=(10,10))
+plt.ylim((-3, 3))
+plt.plot(xs, ys, color = "black", alpha = 1)
+plt.scatter(train_xs, train_ys, color = "blue", alpha = .3, label = "Available for Training")
+plt.scatter(test_xs,  test_ys,  color = "red",  alpha = .3, label = "Unavailable")
+plt.title("Training vs Testing")
+plt.legend()
+plt.savefig("saves/start_noise_tt.png")
+plt.show()
+plt.close()
+
+
+    
 epochs = 1000000
 for i in range(1, epochs+1):
     train_ys = x_to_y(train_xs) ; test_ys = x_to_y(test_xs)
@@ -157,7 +191,7 @@ for i in range(1, epochs+1):
         preds = torch.cat(preds, dim = 1)
         means = torch.mean(preds, dim = 1)
         stds = torch.std(preds, dim = 1)
-        plot(train_pred, test_pred, "Epoch {}".format(i), means, stds)
+        plot(train_pred, test_pred, "Epoch {}".format(str(i).zfill(10)), means, stds)
         print("\n\n\n\n\n")
 
 

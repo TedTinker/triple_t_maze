@@ -44,15 +44,15 @@ parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
 parser.add_argument('--lookahead',          type=int,   default = 1)
-parser.add_argument('--batch_size',         type=int,   default = 128)
+parser.add_argument('--batch_size',         type=int,   default = 16)
 parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
-parser.add_argument('--trans_lr',           type=float, default = .001)
-parser.add_argument('--actor_lr',           type=float, default = .001) 
-parser.add_argument('--critic_lr',          type=float, default = .001) 
-parser.add_argument('--alpha_lr',           type=float, default = .005) 
-parser.add_argument('--eta_lr',             type=float, default = .005)     # Not implemented
+parser.add_argument('--trans_lr',           type=float, default = .005)
+parser.add_argument('--actor_lr',           type=float, default = .005) 
+parser.add_argument('--critic_lr',          type=float, default = .005) 
+parser.add_argument('--alpha_lr',           type=float, default = .01) 
+parser.add_argument('--eta_lr',             type=float, default = .01)     # Not implemented
 
 # Memory buffer
 parser.add_argument('--capacity',           type=int,   default = 300)
@@ -254,9 +254,6 @@ def load_agent(agent, folder, suf = "last"):
     if(type(suf) == int): suf = str(suf).zfill(5)
     agent.load_state_dict(torch.load(folder + "/agents/agent_{}.pt".format(suf)))
     return(agent)
-
-if args.id != 0:
-    print("units.py loaded.")
   
   
 
@@ -362,7 +359,10 @@ def get_x_y(losses, too_long = None):
 def normalize(this):
     if(all(i == 0 for i in this) or min(this) == max(this)): pass
     else:
-        this = [2*((i - min(this)) / (max(this) - min(this)))-1 for i in this]
+        minimum = min(this)
+        maximum = max(this)
+        this = np.array(this)
+        this = 2*((this - minimum) / (maximum - minimum)) - 1
     return(this)
 
 def get_quantiles(plot_dict_list, name):
@@ -375,13 +375,13 @@ def get_quantiles(plot_dict_list, name):
     
     
 line_transparency = .5 ; fill_transparency = .1
-def plots(plot_dict, mins_maxs, folder = folder, name = ""):
-    
+def plots(plot_dict, mins_maxs, folder = folder, name = ""):    
     if(type(plot_dict) == list): many = True  ; epochs = len(plot_dict[0]["rew"])
     else:                        many = False ; epochs = len(plot_dict["rew"])
     
     fig, axs = plt.subplots(6, 1, figsize = (7, 30))
     xs = [i for i in range(epochs)]
+    
     
     
     # Cumulative rewards
@@ -445,11 +445,11 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
 
     # Extrinsic, intrinsic normalized
     ax = axs[2]
-
+    
     if(many):
         ney = normalize(low_ext_y + ey + high_ext_y)
         nicy = normalize(low_cur_y + icy + high_cur_y)
-        niey = normalize(low_ent_y + iey + high_ent_y)    
+        niey = normalize(low_ent_y + iey + high_ent_y)  
         low_ext_y = ney[:len(ey)]    ; high_ext_y = ney[2*len(ey):]   ; ney = ney[len(ey):2*len(ey)]
         low_cur_y = nicy[:len(icy)]  ; high_cur_y = nicy[2*len(icy):] ; nicy = nicy[len(ey):2*len(icy)]
         low_ent_y = niey[:len(iey)]  ; high_ent_y = niey[2*len(iey):] ; niey = niey[len(iey):2*len(iey)]
@@ -473,7 +473,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax.set_ylabel("Value")
     ax.title.set_text("Normalized Extrinsic vs Intrinsic Rewards")    
     divide_arenas(xs, ax)
-    
+        
     # Agent losses
     if(many):
         mse_xs, low_mse, mse, high_mse = get_quantiles(plot_dict, "mse")
@@ -593,3 +593,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     # Save
     plt.savefig(folder + "/plots" + ("_{}".format(name) if name != "" else "") + ".png")
     plt.close()
+    
+
+
+if args.id != 0:
+    print("units.py loaded.")
