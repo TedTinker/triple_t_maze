@@ -163,7 +163,7 @@ class Transitioner(nn.Module):
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
-        return(next_image, next_speed)
+        return(next_image, next_speed, hidden)
 
 
 

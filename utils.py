@@ -514,7 +514,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax = axs[3]
     if(many): 
         ax.fill_between(mse_xs, low_mse_y, high_mse_y, color = "green", alpha = fill_transparency, linewidth = 0)
-        ax.fill_between(dkl_xs, low_dkl_y, high_dkl_y, color = "green", alpha = fill_transparency, linewidth = 0)
+        ax.fill_between(dkl_xs, low_dkl_y, high_dkl_y, color = "red", alpha = fill_transparency, linewidth = 0)
     ax.plot(mse_xs, mse_y, color = "green", alpha = line_transparency, label = "ln mse")
     ax.plot(dkl_xs, dkl_y, color = "red", alpha = line_transparency, label = "ln dkl")
     ax.legend(loc = 'upper left')

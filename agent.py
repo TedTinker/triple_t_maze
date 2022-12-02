@@ -106,7 +106,7 @@ class Agent:
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
                 
-        pred_next_images, pred_next_speeds = self.transitioner(
+        pred_next_images, pred_next_speeds, _ = self.transitioner(
             images[:,:-self.args.lookahead].detach(), 
             speeds[:,:-self.args.lookahead].detach(), 
             prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
@@ -132,7 +132,7 @@ class Agent:
         
         
         if(self.args.weight_change_size == "batch" and self.args.naive_curiosity != "true"):
-            pred_next_images_, pred_next_speeds_ = self.trans_clone(
+            pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
                 images[:,:-self.args.lookahead].detach(), 
                 speeds[:,:-self.args.lookahead].detach(), 
                 prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
@@ -176,7 +176,7 @@ class Agent:
                         self.trans_clone.bayes.bias_sampler.rho.clone())
             for episode in range(weight_changes.shape[0]):
                 self.trans_clone_clone.load_state_dict(self.trans_clone.state_dict())
-                pred_next_images_, pred_next_speeds_ = self.trans_clone_clone(
+                pred_next_images_, pred_next_speeds_, _ = self.trans_clone_clone(
                     images[episode,:-self.args.lookahead].detach(), 
                     speeds[episode,:-self.args.lookahead].detach(), 
                     prev_actions[episode,:-self.args.lookahead].detach(), sequential_actions[episode].detach())
@@ -217,7 +217,7 @@ class Agent:
                 hidden = None
                 for step in range(weight_changes.shape[1]):
                     self.trans_clone_clone.load_state_dict(self.trans_clone.state_dict())
-                    pred_next_images, pred_next_speeds, hidden = self.trans_clone_clone(
+                    pred_next_images_, pred_next_speeds_, hidden = self.trans_clone_clone(
                         images[episode,step:step+self.args.lookahead].detach(), 
                         speeds[episode,step:step+self.args.lookahead].detach(), 
                         prev_actions[episode,step:step+self.args.lookahead].detach(), 
@@ -230,7 +230,7 @@ class Agent:
                     flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
                 
                     mse_loss_ = F.mse_loss(flat_pred[episode,step], flat_real[episode,step], reduction = "none") 
-                    dkl_loss_ = self.args.kl_weight * b_kl_loss(self.trans_clone_clone)
+                    dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone_clone)
                     trans_loss_ = mse_loss_ + dkl_loss_
                     
                     self.opt_clone_clone.zero_grad()
