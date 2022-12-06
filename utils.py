@@ -26,7 +26,7 @@ parser.add_argument("--id",                 type=int,   default = 0)
 
 # Environment 
 parser.add_argument('--boxes_per_cube',     type=int,   default = 2)  
-parser.add_argument('--bigger_cube',        type=float, default = 1.2)    
+parser.add_argument('--bigger_cube',        type=float, default = 1.05)    
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
 parser.add_argument("--GAMMA",              type=float, default = .9)  # For discounting reward in training
@@ -37,10 +37,10 @@ parser.add_argument("--better_reward",      type=float, default = 1)#((.5, .5),(
 # Agent
 parser.add_argument('--body_size',          type=float, default = 2)    
 parser.add_argument('--image_size',         type=int,   default = 8)
-parser.add_argument('--min_speed',          type=float, default = 40)
-parser.add_argument('--max_speed',          type=float, default = 50)
+parser.add_argument('--min_speed',          type=float, default = 50)
+parser.add_argument('--max_speed',          type=float, default = 100)
 parser.add_argument('--steps_per_step',     type=int,   default = 5)
-parser.add_argument('--max_steps',          type=int,   default = 30)
+parser.add_argument('--max_steps',          type=int,   default = 16)
 parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 
 # Module 
