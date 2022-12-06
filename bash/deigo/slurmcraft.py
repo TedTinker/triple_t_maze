@@ -1,8 +1,9 @@
 #%%
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--name", type=str, default = "default")
-args = parser.parse_args()
+parser.add_argument("--name", type=str, default = "high_entropy_no_curiosity")
+try:    args = parser.parse_args()
+except: args, _ = parser.parse_known_args()
 
 import os 
 try:    os.chdir("triple_t_maze/bash/deigo")
@@ -17,8 +18,6 @@ for line in slurms:
         name, text = line.split(":")
         slurm_dict[name.strip()] = text.strip()
         
-
-
 with open("{}.slurm".format(args.name), "a") as f:
     f.write(
 """

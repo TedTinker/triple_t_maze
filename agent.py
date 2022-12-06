@@ -293,13 +293,13 @@ class Agent:
         if self.args.alpha == None: Q_targets = rewards.cpu() + (self.args.GAMMA * (1 - dones.cpu()) * (Q_target_next.cpu() - self.alpha * log_pis_next.cpu()))
         else:                       Q_targets = rewards.cpu() + (self.args.GAMMA * (1 - dones.cpu()) * (Q_target_next.cpu() - self.args.alpha * log_pis_next.cpu()))
         
-        Q_1 = self.critic1(encoded, actions).cpu()
+        Q_1 = self.critic1(encoded.detach(), actions.detach()).cpu()
         critic1_loss = 0.5*F.mse_loss(Q_1*masks.detach().cpu(), Q_targets.detach()*masks.detach().cpu())
         self.critic1_optimizer.zero_grad()
         critic1_loss.backward()
         self.critic1_optimizer.step()
         
-        Q_2 = self.critic2(encoded, actions).cpu()
+        Q_2 = self.critic2(encoded.detach(), actions.detach()).cpu()
         critic2_loss = 0.5*F.mse_loss(Q_2*masks.detach().cpu(), Q_targets.detach()*masks.detach().cpu())
         self.critic2_optimizer.zero_grad()
         critic2_loss.backward()

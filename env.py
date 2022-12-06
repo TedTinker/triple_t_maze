@@ -80,7 +80,7 @@ class Env():
 
     def render(self, view = "body"):
         if(view == "body" or "both"):
-            rgbd, _ = self.get_obs()
+            rgbd, _, _ = self.get_obs()
             rgb = (rgbd[:,:,0:3] + 1)/2
             plt.figure(figsize = (5,5))
             plt.imshow(rgb)
@@ -126,8 +126,8 @@ class Env():
         p.resetBasePositionAndOrientation(self.body.num,(self.body.pos[0], self.body.pos[1], .5), orn, physicsClientId = self.arena.physicsClient)
         
         old_speed = self.body.spe
-        x = -cos(new_yaw)*speed
-        y = -sin(new_yaw)*speed
+        x = -cos(new_yaw)*speed / self.args.steps_per_step
+        y = -sin(new_yaw)*speed / self.args.steps_per_step
         p.resetBaseVelocity(self.body.num, (x,y,0), (0,0,0), physicsClientId = self.arena.physicsClient)
         _, self.body.yaw, _ = self.arena.get_pos_yaw_spe(self.body.num)
                 
@@ -151,14 +151,15 @@ class Env():
         with torch.no_grad():
             self.body.action, self.body.hidden = agent.act(
                 image, speed, prev_action, self.body.hidden)
-        self.pred_action = self.body.action
+        self.prev_action = self.body.action
         yaw = -self.body.action[0].item() * self.args.max_yaw_change
         spe = self.args.min_speed + ((self.body.action[1].item() + 1)/2) * \
             (self.args.max_speed - self.args.min_speed)
         yaw, spe = self.real_yaw_spe(yaw, spe)
         self.change_velocity(yaw, spe)
       
-        p.stepSimulation(physicsClientId = self.arena.physicsClient)
+        for _ in range(self.args.steps_per_step):
+            p.stepSimulation(physicsClientId = self.arena.physicsClient)
         self.body.pos, self.body.yaw, self.body.spe = self.arena.get_pos_yaw_spe(self.body.num)
         end, which, reward = self.arena.end_collisions(self.body.num)
         col = self.arena.other_collisions(self.body.num)
@@ -184,7 +185,8 @@ class Env():
         yaw, spe = self.real_yaw_spe(yaw, spe)
         self.change_velocity(yaw, spe, verbose = verbose)
         
-        p.stepSimulation(physicsClientId = self.arena.physicsClient)
+        for _ in range(self.args.steps_per_step):
+            p.stepSimulation(physicsClientId = self.arena.physicsClient)
         self.body.pos, self.body.yaw, self.body.spe = self.arena.get_pos_yaw_spe(self.body.num)
         end, which, reward = self.arena.end_collisions(self.body.num)
         
@@ -217,3 +219,4 @@ if __name__ == "__main__":
 
 
 print("env.py loaded.")
+# %%

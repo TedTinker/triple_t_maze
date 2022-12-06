@@ -143,7 +143,7 @@ class Transitioner(nn.Module):
         if(len(image.shape) == 4):  sequence = False
         else:                       sequence = True
         action = action.to(device) ; prev_action = prev_action.to(device)
-        encoding, _ = self.just_encode(image, speed, prev_action, hidden)
+        encoding, hidden = self.just_encode(image, speed, prev_action, hidden)
         action = self.actions_in(action)
         x = torch.cat((encoding, action), dim=-1)
         x = self.bayes(x)
