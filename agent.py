@@ -43,6 +43,14 @@ class Agent:
         
         self.trans_clone_clone = Transitioner(self.args)
         self.opt_clone_clone = optim.Adam(self.trans_clone_clone.parameters(), lr=self.args.trans_lr)
+        
+        for name, param in self.trans_clone.named_children():
+            if(name != "bayes"):
+                param.requires_grad_(False)
+                
+        for name, param in self.trans_clone_clone.named_children():
+            if(name != "bayes"):
+                param.requires_grad_(False)
                            
         self.actor = Actor(self.args)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr)     

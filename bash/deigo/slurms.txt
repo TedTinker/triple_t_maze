@@ -54,14 +54,14 @@ steps_000001      	: --target_entropy -5 --eta 0 --alpha 0 --weight_change_size 
 
 
 high_naive_curiosity : --target_entropy -5 --alpha 0 --eta .010   
-batch_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001
-batch_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005
-batch_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001
-batch_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005
-batch_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .001
-batch_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .005
-batch_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .01
-batch_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .05
+batch_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001
+batch_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005
+batch_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001
+batch_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000005
+batch_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001
+batch_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005
+batch_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001
+batch_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005
 
 episode_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --weight_change_size episode
 episode_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --weight_change_size episode
