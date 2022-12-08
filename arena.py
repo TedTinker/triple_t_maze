@@ -212,7 +212,7 @@ class Arena():
         return(col)
 
 if __name__ == "__main__":
-    arena = Arena(arena_name = "3", GUI = True)
+    arena = Arena(arena_name = "t", GUI = True)
     arena.start_arena()
     
 print("arena.py loaded.")

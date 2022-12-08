@@ -25,6 +25,7 @@ parser.add_argument("--explore_type",       type=str,   default = "POST_MAIN")
 parser.add_argument("--id",                 type=int,   default = 0)
 
 # Environment 
+parser.add_argument('--map',                type=tuple, default = ("1", "2", "3"))
 parser.add_argument('--boxes_per_cube',     type=int,   default = 2)  
 parser.add_argument('--bigger_cube',        type=float, default = 1.05)    
 parser.add_argument('--wall_punishment',    type=float, default = .1)
@@ -64,7 +65,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=int,   default = (1000, 2000, 4000))
+parser.add_argument('--epochs_per_arena',   type=tuple, default = (500, 1500, 3000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -102,8 +103,8 @@ class Arena_Dict:
 arena_dict = {
     "t.png" : Arena_Dict(
         (3, 2),
-        [Exit(  "L",    (1,0), args.default_reward),
-        Exit(   "R",    (1,4), ((.5, .5), (.5, 3.5)))]),
+        [Exit(  "L",    (2,0), 1),
+        Exit(   "R",    (2,7), ((.5, .5), (.5, 3.5)))]),
     "1.png" : Arena_Dict(
         (2,2), 
         [Exit(  "L",    (1,0), args.default_reward),
@@ -398,12 +399,13 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         rew = plot_dict["rew"] ; rew = np.cumsum(rew)
         pun = plot_dict["pun"] ; pun = np.cumsum(pun)
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
-    ax.plot([x for x in range(len(rew))], rew, color = "turquoise", alpha = 2*line_transparency)
-    ax.plot([x for x in range(len(pun))], pun, color = "pink", alpha = 2*line_transparency)
+    ax.plot([x for x in range(len(rew))], rew, color = "turquoise", alpha = 2*line_transparency, label = "Reward")
+    ax.plot([x for x in range(len(pun))], pun, color = "pink", alpha = 2*line_transparency,      label = "Punishment")
     ax.set_xlabel("Time")
     ax.set_ylabel("Rewards/Punishments")
     ax.title.set_text("Cumulative Rewards and Punishments")
     divide_arenas(xs, ax)
+    ax.legend(loc = 'lower left')
     ax.set_ylim(mins_maxs[0])
     
     
@@ -559,7 +561,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     
     
     
-    # Plot which
+    # Plot which exits taken
     ax = axs[5]
     kinds = ["FAIL", 
              "L", "R",

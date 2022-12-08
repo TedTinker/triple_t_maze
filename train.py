@@ -44,7 +44,7 @@ class Trainer():
             load_name = None):
         
         self.current_arena = 0
-        self.arena_names = ["1", "2", "3"]
+        self.arena_names = args.map
         self.args = args
         self.load_folder = load_folder; self.load_name = load_name
                 
@@ -175,6 +175,8 @@ class Trainer():
         
         if(arena_name == None):
             arena_name = self.arena_names[self.current_arena]
+            
+        print("Positions in {}".format(arena_name))
         
         self.env = Env(arena_name, self.args, GUI = False)
             
