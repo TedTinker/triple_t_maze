@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt 
 from math import sin
+import numpy as np
 
 import torch
 from torch import nn
@@ -14,10 +15,11 @@ from blitz.losses import kl_divergence_from_nn as b_kl_loss
 import os 
 os.chdir(r"/home/ted/Desktop/triple_t_maze")
 
-from utils import init_weights, device
+from utils import init_weights, device, dkl
 
-def x_to_y(x, noise = True): 
-    y = torch.cos(x) + torch.sin(.6*x)
+def x_to_y(x, kind = True, noise = True): 
+    if(kind): y = torch.cos(x) + torch.sin(.6*x)
+    else:     y = torch.sin(x) + torch.cos(.6*x)
     if(noise): y += torch.normal(torch.zeros(x.shape), .3 * torch.ones(x.shape))
     return(y)
 
@@ -31,7 +33,7 @@ train_xs = xs[1*len(xs)//5 : 2*len(xs)//5] + xs[3*len(xs)//5 : 4*len(xs)//5]
 
 train_xs = torch.tensor(train_xs).unsqueeze(1) ; train_ys = x_to_y(train_xs)
 test_xs  = torch.tensor(test_xs).unsqueeze(1)  ; test_ys = x_to_y(test_xs)
-xs = torch.tensor(xs).unsqueeze(1)             ; ys = x_to_y(xs, False)
+xs = torch.tensor(xs).unsqueeze(1)             ; ys = x_to_y(xs, True, False)
 
 class Example(nn.Module):
 
@@ -41,11 +43,13 @@ class Example(nn.Module):
         self.lin = nn.Sequential(
             nn.Linear(1, 64),
             nn.LeakyReLU(),
-            BayesianLinear(64, 64),
-            nn.LeakyReLU(),
-            nn.Linear(64, 1))
+            nn.Linear(64, 64),
+            nn.LeakyReLU())
+        
+        self.bayes = BayesianLinear(64, 1)
         
         self.lin.apply(init_weights)
+        self.bayes.apply(init_weights)
         self.to(device)
         
         print("\n\n")
@@ -55,47 +59,56 @@ class Example(nn.Module):
         print("\n\n")
 
         print("Bayes lin:")
-        print("weight mu:\t {}".format(self.lin[2].weight_mu.shape))
-        print("weight rho:\t {}".format(self.lin[2].weight_rho.shape))
-        print("bias mu:\t {}".format(self.lin[2].bias_mu.shape))
-        print("bias rho:\t {}".format(self.lin[2].bias_rho.shape))
+        print("weight mu:\t {}".format(self.bayes.weight_mu.shape))
+        print("weight rho:\t {}".format(self.bayes.weight_rho.shape))
+        print("bias mu:\t {}".format(self.bayes.bias_mu.shape))
+        print("bias rho:\t {}".format(self.bayes.bias_rho.shape))
 
         print("\nweight sampler (TrainableRandomDistribution):")
-        print("mu:\t {}".format(self.lin[2].weight_sampler.mu.shape))
-        print("rho:\t {}".format(self.lin[2].weight_sampler.rho.shape))
-        print("sigma:\t {}".format(self.lin[2].weight_sampler.sigma.shape))
-        print("w:\t {}".format(self.lin[2].weight_sampler.w.shape))
-        print("eps_w:\t {}".format(self.lin[2].weight_sampler.eps_w.shape))
-        print("log_post sample:\t {}".format(self.lin[2].weight_sampler.log_posterior()))
+        print("mu:\t {}".format(self.bayes.weight_sampler.mu.shape))
+        print("rho:\t {}".format(self.bayes.weight_sampler.rho.shape))
+        print("sigma:\t {}".format(self.bayes.weight_sampler.sigma.shape))
+        print("w:\t {}".format(self.bayes.weight_sampler.w.shape))
+        print("eps_w:\t {}".format(self.bayes.weight_sampler.eps_w.shape))
+        print("log_post sample:\t {}".format(self.bayes.weight_sampler.log_posterior()))
 
         print("\nbias sampler (TrainableRandomDistribution):")
-        print("mu:\t {}".format(self.lin[2].bias_sampler.mu.shape))
-        print("rho:\t {}".format(self.lin[2].bias_sampler.rho.shape))
-        print("sigma:\t {}".format(self.lin[2].bias_sampler.sigma.shape))
-        print("w:\t {}".format(self.lin[2].bias_sampler.w.shape))
-        print("eps_w:\t {}".format(self.lin[2].bias_sampler.eps_w.shape))
-        print("log_post:\t {}".format(self.lin[2].bias_sampler.log_posterior()))
+        print("mu:\t {}".format(self.bayes.bias_sampler.mu.shape))
+        print("rho:\t {}".format(self.bayes.bias_sampler.rho.shape))
+        print("sigma:\t {}".format(self.bayes.bias_sampler.sigma.shape))
+        print("w:\t {}".format(self.bayes.bias_sampler.w.shape))
+        print("eps_w:\t {}".format(self.bayes.bias_sampler.eps_w.shape))
+        print("log_post:\t {}".format(self.bayes.bias_sampler.log_posterior()))
 
         print("\nweight prior dist (PriorWeightDistribution):")
-        print("sigma1: {}. sigma2: {}.".format(self.lin[2].weight_prior_dist.sigma1, self.lin[2].weight_prior_dist.sigma2))
-        print("dist1:\t {}".format(self.lin[2].weight_prior_dist.dist1))
-        print("dist2:\t {}".format(self.lin[2].weight_prior_dist.dist2))
-        print("log_prior:\t {}".format(self.lin[2].weight_prior_dist.log_prior(self.lin[2].weight_sampler.w)))
+        print("sigma1: {}. sigma2: {}.".format(self.bayes.weight_prior_dist.sigma1, self.bayes.weight_prior_dist.sigma2))
+        print("dist1:\t {}".format(self.bayes.weight_prior_dist.dist1))
+        print("dist2:\t {}".format(self.bayes.weight_prior_dist.dist2))
+        print("log_prior:\t {}".format(self.bayes.weight_prior_dist.log_prior(self.bayes.weight_sampler.w)))
 
         print("\nbias prior dist (PriorWeightDistribution):")
-        print("sigma1: {}. sigma2: {}.".format(self.lin[2].bias_prior_dist.sigma1, self.lin[2].bias_prior_dist.sigma2))
-        print("dist1:\t {}".format(self.lin[2].bias_prior_dist.dist1))
-        print("dist2:\t {}".format(self.lin[2].bias_prior_dist.dist2))
-        print("log_prior:\t {}".format(self.lin[2].bias_prior_dist.log_prior(self.lin[2].bias_sampler.w)))
+        print("sigma1: {}. sigma2: {}.".format(self.bayes.bias_prior_dist.sigma1, self.bayes.bias_prior_dist.sigma2))
+        print("dist1:\t {}".format(self.bayes.bias_prior_dist.dist1))
+        print("dist2:\t {}".format(self.bayes.bias_prior_dist.dist2))
+        print("log_prior:\t {}".format(self.bayes.bias_prior_dist.log_prior(self.bayes.bias_sampler.w)))
         print("\n\n")
 
     def forward(self, x):
         x = x.to(device)
         x = self.lin(x)
+        x = self.bayes(x)
         return(x.cpu())
 
 example = Example()
-opt = optim.Adam(params=example.parameters(), lr=.001) 
+opt = optim.Adam(params=example.parameters(), lr=.005, weight_decay=0) 
+
+
+
+mse_losses = []
+kl_losses = []
+dkls = []
+changes = []
+
 
 
 def dkl(mu_1, rho_1, mu_2, rho_2):
@@ -111,14 +124,31 @@ def epoch(source):
     if(source == "train"): example.train() ; Xs = train_xs ; Ys = train_ys
     if(source == "both"):  example.eval()  ; Xs = xs       ; Ys = ys
     pred = example(Xs) 
+    mse_loss = F.mse_loss(pred, Ys)
+    kl_loss  = .001 * b_kl_loss(example)
+    loss = mse_loss + kl_loss
     if(source == "train"):
-        mse_loss = F.mse_loss(pred, Ys)
-        kl_loss  = .0001 * b_kl_loss(example)
-        #print("MSE: {}. KL: {}.".format(mse_loss.item(), kl_loss.item()))
-        loss = mse_loss + kl_loss
+        mse_losses.append(mse_loss.item())
+        kl_losses.append(kl_loss.item())
+        
+        weights_before = (example.bayes.weight_sampler.mu.clone(), 
+                    example.bayes.weight_sampler.rho.clone(), 
+                    example.bayes.bias_sampler.mu.clone(), 
+                    example.bayes.bias_sampler.rho.clone())
         opt.zero_grad()
         loss.backward()
         opt.step()
+        
+        weights_after = (example.bayes.weight_sampler.mu.clone(), 
+                    example.bayes.weight_sampler.rho.clone(), 
+                    example.bayes.bias_sampler.mu.clone(), 
+                    example.bayes.bias_sampler.rho.clone())
+        
+        weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
+            dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+                
+        dkls.append(weight_change.item())
+        
     return(pred)
 
 def plot(train_pred, test_pred, title = "", means = None, stds = None):
@@ -138,50 +168,44 @@ def plot(train_pred, test_pred, title = "", means = None, stds = None):
     plt.scatter(test_xs,  test_pred,  color = "red",  alpha = .6)
     plt.title("{}".format(title))
     plt.legend()
-    plt.savefig("saves/{}.png".format(title))
+    plt.show()
+    plt.close()
+    
+    plt.figure(figsize=(10,10))
+    for change in changes:
+        plt.axvline(change, color = "black", alpha = .5)
+    plt.plot(np.log(np.array(mse_losses)), color = "blue", label = "MSE")
+    plt.plot(np.log(np.array(kl_losses)),  color = "red",  label = "KL")
+    plt.title("Losses")
+    plt.legend()
+    plt.show()
+    plt.close()
+    
+    plt.figure(figsize=(10,10))
+    for change in changes:
+        plt.axvline(change, color = "black", alpha = .5)
+    plt.plot(np.log(np.array(dkls)), color = "green")
+    plt.title("KL(q(w)||q(w|D))")
     plt.show()
     plt.close()
     
     
-    
-plt.figure(figsize=(10,10))
-plt.ylim((-3, 3))
-plt.plot(xs, ys, color = "black", alpha = 1)
-plt.title("cos(x) + sin(.6 * x)")
-plt.savefig("saves/start.png")
-plt.show()
-plt.close()
-
-plt.figure(figsize=(10,10))
-plt.ylim((-3, 3))
-plt.plot(xs, ys, color = "black", alpha = 1)
-plt.scatter(train_xs, train_ys, color = "black", alpha = .3)
-plt.scatter(test_xs,  test_ys,  color = "black", alpha = .3)
-plt.title("cos(x) + sin(.6 * x) with noise")
-plt.savefig("saves/start_noise.png")
-plt.show()
-plt.close()
-
-plt.figure(figsize=(10,10))
-plt.ylim((-3, 3))
-plt.plot(xs, ys, color = "black", alpha = 1)
-plt.scatter(train_xs, train_ys, color = "blue", alpha = .3, label = "Available for Training")
-plt.scatter(test_xs,  test_ys,  color = "red",  alpha = .3, label = "Unavailable")
-plt.title("Training vs Testing")
-plt.legend()
-plt.savefig("saves/start_noise_tt.png")
-plt.show()
-plt.close()
 
 
     
-epochs = 1000000
+epochs = 100000
+change_time = 4333
+kind = True
 for i in range(1, epochs+1):
-    train_ys = x_to_y(train_xs) ; test_ys = x_to_y(test_xs)
+    if(i % change_time == 0): 
+        kind = not kind
+        changes.append(i)
+        ys = x_to_y(xs, kind, False)
+    train_ys = x_to_y(train_xs, kind) ; test_ys = x_to_y(test_xs, kind)
     
-    weights_before = example.lin[2].weight_sampler.mu.clone(), example.lin[2].weight_sampler.rho.clone(), example.lin[2].bias_sampler.mu.clone(), example.lin[2].bias_sampler.rho.clone()
+    weights_before = example.bayes.weight_sampler.mu.clone(), example.bayes.weight_sampler.rho.clone(), example.bayes.bias_sampler.mu.clone(), example.bayes.bias_sampler.rho.clone()
     train_pred = epoch("train").detach() ; test_pred = epoch("test").detach()
-    weights_after = example.lin[2].weight_sampler.mu.clone(), example.lin[2].weight_sampler.rho.clone(), example.lin[2].bias_sampler.mu.clone(), example.lin[2].bias_sampler.rho.clone()
+    weights_after = example.bayes.weight_sampler.mu.clone(), example.bayes.weight_sampler.rho.clone(), example.bayes.bias_sampler.mu.clone(), example.bayes.bias_sampler.rho.clone()
 
     if(i == 1 or i%1000 == 0 or i == epochs): 
         preds = []
