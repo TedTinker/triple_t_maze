@@ -28,32 +28,25 @@ class Agent:
         self.target_entropy = self.args.target_entropy # -dim(A)
         self.alpha = 1
         self.log_alpha = torch.tensor([0.0], requires_grad=True)
-        self.alpha_optimizer = optim.Adam(params=[self.log_alpha], lr=self.args.alpha_lr) 
+        self.alpha_optimizer = optim.Adam(params=[self.log_alpha], lr=self.args.alpha_lr, weight_decay=0) 
         self._action_prior = action_prior
         
         self.eta = 1
         self.log_eta = torch.tensor([0.0], requires_grad=True)
-        self.eta_optimizer = optim.Adam(params=[self.log_eta], lr=self.args.eta_lr) 
+        self.eta_optimizer = optim.Adam(params=[self.log_eta], lr=self.args.eta_lr, weight_decay=0) 
         
         self.transitioner = Transitioner(self.args)
-        self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr)     
+        self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr, weight_decay=0)     
         
         self.trans_clone = Transitioner(self.args)
-        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_lr)
-        
-        self.trans_clone_clone = Transitioner(self.args)
-        self.opt_clone_clone = optim.Adam(self.trans_clone_clone.parameters(), lr=self.args.trans_lr)
+        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_lr, weight_decay=0)
         
         for name, param in self.trans_clone.named_children():
             if(name != "bayes"):
                 param.requires_grad_(False)
-                
-        for name, param in self.trans_clone_clone.named_children():
-            if(name != "bayes"):
-                param.requires_grad_(False)
                            
         self.actor = Actor(self.args)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr)     
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr, weight_decay=0)     
         
         self.critic1 = Critic(self.args)
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=self.args.critic_lr, weight_decay=0)
@@ -131,8 +124,13 @@ class Agent:
         print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
         trans_loss = mse_loss + dkl_loss
         
-        self.trans_clone.load_state_dict(self.transitioner.state_dict()) # For curiosity
+        old_state_dict = self.transitioner.state_dict() # For curiosity
         
+        weights_before = (self.transitioner.bayes.weight_sampler.mu.clone(), 
+                    self.transitioner.bayes.weight_sampler.rho.clone(), 
+                    self.transitioner.bayes.bias_sampler.mu.clone(), 
+                    self.transitioner.bayes.bias_sampler.rho.clone())
+    
         self.trans_optimizer.zero_grad()
         trans_loss.sum().backward()
         self.trans_optimizer.step()
@@ -140,6 +138,7 @@ class Agent:
         
         
         if(self.args.weight_change_size == "batch" and self.args.naive_curiosity != "true"):
+            self.trans_clone.load_state_dict(old_state_dict())
             pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
                 images[:,:-self.args.lookahead].detach(), 
                 speeds[:,:-self.args.lookahead].detach(), 
@@ -155,11 +154,6 @@ class Agent:
             mse_loss_ = torch.sum(trans_errors_.clone())
             dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
             trans_loss_ = mse_loss_ + dkl_loss_
-            
-            weights_before = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
-                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
-                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
-                        self.trans_clone.bayes.bias_sampler.rho.clone())
             
             self.opt_clone.zero_grad()
             trans_loss_.sum().backward()
@@ -178,13 +172,9 @@ class Agent:
             
         if(self.args.weight_change_size == "episode" and self.args.naive_curiosity != "true"):
             weight_changes = torch.zeros(rewards.shape)
-            weights_before = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
-                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
-                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
-                        self.trans_clone.bayes.bias_sampler.rho.clone())
             for episode in range(weight_changes.shape[0]):
-                self.trans_clone_clone.load_state_dict(self.trans_clone.state_dict())
-                pred_next_images_, pred_next_speeds_, _ = self.trans_clone_clone(
+                self.trans_clone.load_state_dict(old_state_dict())
+                pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
                     images[episode,:-self.args.lookahead].detach(), 
                     speeds[episode,:-self.args.lookahead].detach(), 
                     prev_actions[episode,:-self.args.lookahead].detach(), sequential_actions[episode].detach())
@@ -197,17 +187,17 @@ class Agent:
                 
                 trans_errors_ = F.mse_loss(flat_pred, flat_real[episode].detach(), reduction = "none") 
                 mse_loss_ = torch.sum(trans_errors_.clone())
-                dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone_clone)
+                dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
                 trans_loss_ = mse_loss_ + dkl_loss_
                 
-                self.opt_clone_clone.zero_grad()
+                self.opt_clone.zero_grad()
                 trans_loss_.sum().backward()
-                self.opt_clone_clone.step()
+                self.opt_clone.step()
             
-                weights_after = (self.trans_clone_clone.bayes.weight_sampler.mu.clone(), 
-                        self.trans_clone_clone.bayes.weight_sampler.rho.clone(), 
-                        self.trans_clone_clone.bayes.bias_sampler.mu.clone(), 
-                        self.trans_clone_clone.bayes.bias_sampler.rho.clone())
+                weights_after = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
+                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
+                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
+                        self.trans_clone.bayes.bias_sampler.rho.clone())
                 
                 weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
                     dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
@@ -217,15 +207,11 @@ class Agent:
         
         if(self.args.weight_change_size == "step" and self.args.naive_curiosity != "true"):
             weight_changes = torch.zeros(rewards.shape)
-            weights_before = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
-                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
-                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
-                        self.trans_clone.bayes.bias_sampler.rho.clone())
             for episode in range(weight_changes.shape[0]):
                 hidden = None
                 for step in range(weight_changes.shape[1]):
-                    self.trans_clone_clone.load_state_dict(self.trans_clone.state_dict())
-                    pred_next_images_, pred_next_speeds_, hidden = self.trans_clone_clone(
+                    self.trans_clone.load_state_dict(old_state_dict())
+                    pred_next_images_, pred_next_speeds_, hidden = self.trans_clone(
                         images[episode,step:step+self.args.lookahead].detach(), 
                         speeds[episode,step:step+self.args.lookahead].detach(), 
                         prev_actions[episode,step:step+self.args.lookahead].detach(), 
@@ -238,17 +224,17 @@ class Agent:
                     flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
                 
                     mse_loss_ = F.mse_loss(flat_pred[episode,step], flat_real[episode,step], reduction = "none") 
-                    dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone_clone)
+                    dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
                     trans_loss_ = mse_loss_ + dkl_loss_
                     
-                    self.opt_clone_clone.zero_grad()
+                    self.opt_clone.zero_grad()
                     trans_loss_.sum().backward()
-                    self.opt_clone_clone.step()
+                    self.opt_clone.step()
                 
-                    weights_after = (self.trans_clone_clone.bayes.weight_sampler.mu.clone(), 
-                            self.trans_clone_clone.bayes.weight_sampler.rho.clone(), 
-                            self.trans_clone_clone.bayes.bias_sampler.mu.clone(), 
-                            self.trans_clone_clone.bayes.bias_sampler.rho.clone())
+                    weights_after = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
+                            self.trans_clone.bayes.weight_sampler.rho.clone(), 
+                            self.trans_clone.bayes.bias_sampler.mu.clone(), 
+                            self.trans_clone.bayes.bias_sampler.rho.clone())
                     
                     weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
                         dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])

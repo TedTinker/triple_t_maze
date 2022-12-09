@@ -200,7 +200,7 @@ class Env():
 
 
 if __name__ == "__main__":
-    env = Env("3", GUI = True)
+    env = Env("t", GUI = True)
     env.reset()   
     env.render("body") 
     end = False
