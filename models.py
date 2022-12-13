@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from torchinfo import summary as torch_summary
 from blitz.modules import BayesianLinear, BayesianConv2d
+from blitz.modules.base_bayesian_module import BayesianModule
 
 from utils import args, device, ConstrainedConv2d, delete_these, \
     init_weights, shape_out, flatten_shape
@@ -164,6 +165,29 @@ class Transitioner(nn.Module):
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
         return(next_image, next_speed, hidden)
+    
+    def weights(self):
+        weight_mu = [] ; weight_rho = []
+        bias_mu = [] ;   bias_rho = []
+        for module in self.modules():
+            if isinstance(module, (BayesianModule)):
+                weight_mu.append(module.weight_sampler.mu.clone().flatten())
+                weight_rho.append(module.weight_sampler.rho.clone().flatten())
+                bias_mu.append(module.bias_sampler.mu.clone().flatten()) 
+                bias_rho.append(module.bias_sampler.rho.clone().flatten())
+        return(
+            torch.cat(weight_mu, -1),
+            torch.cat(weight_rho, -1),
+            torch.cat(bias_mu, -1),
+            torch.cat(bias_rho, -1))
+        
+    def means_stds(self):
+        weights = self.weights()
+        return(
+            torch.mean(weights[0]).item(),
+            torch.log1p(torch.exp(torch.mean(weights[1]))).item(),
+            torch.mean(weights[2]).item(),
+            torch.log1p(torch.exp(torch.mean(weights[3]))).item())
 
 
 

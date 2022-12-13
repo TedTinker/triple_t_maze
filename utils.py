@@ -74,7 +74,8 @@ parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-A
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
-parser.add_argument("--dkl_rate",           type=float, default = .1)   # Scale bayesian dkl
+parser.add_argument("--dkl_rate",           type=float, default = .5)#.1)   # Scale bayesian dkl
+parser.add_argument("--sample_elbo",        type=int,   default = 3)    # Samples for elbo
 parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
 parser.add_argument("--weight_change_size", type=str,   default = "batch")  # "batch", "episode", "step"
 
@@ -321,7 +322,7 @@ def plot_some_predictions(args, images, speeds, pred_next_images, pred_next_spee
         ax3.axis('off')
         title = ""
         for i in range(args.lookahead):
-            title += "Epoch {}. Step {} action: {} degrees, {} speed".format(epoch, step_num+i, yaws[i], spes[i])
+            title += "Epoch {}. Step {} action: {} degrees, {} speed".format(epoch, step_num+i, yaws[i], round(spes[i]/args.steps_per_step))
             if(i < args.lookahead): title += "\n"
         fig.suptitle(title)
         fig.tight_layout()

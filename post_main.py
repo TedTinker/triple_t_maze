@@ -231,6 +231,7 @@ def make_end_pics(order):
     trans_min_max = tuple_min_max([mse_min_max, dkl_min_max])    
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
+    rew_min_max = (rew_min_max[0]*1.2, rew_min_max[1]*1.2)
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
     
     mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max]

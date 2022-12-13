@@ -72,11 +72,11 @@ episode_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    -
 episode_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --weight_change_size episode
 episode_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --weight_change_size episode
 
-step_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --weight_change_size step
-step_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --weight_change_size step
-step_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --weight_change_size step
-step_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --weight_change_size step
-step_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .001 --weight_change_size step
-step_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .005 --weight_change_size step
-step_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .01 --weight_change_size step
-step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .05 --weight_change_size step
+step_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001 --weight_change_size step
+step_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005 --weight_change_size step
+step_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001 --weight_change_size step
+step_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000005 --weight_change_size step
+step_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --weight_change_size step
+step_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --weight_change_size step
+step_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --weight_change_size step
+step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --weight_change_size step

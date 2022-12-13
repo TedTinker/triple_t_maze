@@ -106,30 +106,32 @@ class Agent:
             next_actions = torch.cat([actions[:,i+1:], torch.zeros((actions.shape[0], i+1, 2))], dim=1)
             sequential_actions = torch.cat([sequential_actions, next_actions], dim = -1)
         sequential_actions = sequential_actions if self.args.lookahead==1 else sequential_actions[:,:-self.args.lookahead+1]
-                
-        pred_next_images, pred_next_speeds, _ = self.transitioner(
-            images[:,:-self.args.lookahead].detach(), 
-            speeds[:,:-self.args.lookahead].detach(), 
-            prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
         
-        flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
-        flat_pred_images = flat_pred_images.flatten(2)
-        flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
-        flat_pred_speeds = flat_pred_speeds
-        flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
-        
-        trans_errors = F.mse_loss(flat_pred, flat_real.detach(), reduction = "none") 
-        mse_loss = torch.sum(trans_errors.clone())
-        dkl_loss = self.args.dkl_rate * b_kl_loss(self.transitioner)
-        print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
+        trans_errors = torch.zeros(rewards.shape)
+        dkl_loss = 0
+        for _ in range(self.args.sample_elbo):
+            pred_next_images, pred_next_speeds, _ = self.transitioner(
+                images[:,:-self.args.lookahead].detach(), 
+                speeds[:,:-self.args.lookahead].detach(), 
+                prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
+            
+            flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
+            flat_pred_images = flat_pred_images.flatten(2)
+            flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
+            flat_pred_speeds = flat_pred_speeds
+            flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
+            
+            errors = F.mse_loss(flat_pred, flat_real.detach(), reduction = "none") 
+            errors = torch.sum(errors, -1).unsqueeze(-1)
+            trans_errors += errors / self.args.sample_elbo
+            dkl_loss += self.args.dkl_rate * b_kl_loss(self.transitioner) / self.args.sample_elbo
+        mse_loss = trans_errors.sum()
         trans_loss = mse_loss + dkl_loss
+        print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
         
         old_state_dict = self.transitioner.state_dict() # For curiosity
         
-        weights_before = (self.transitioner.bayes.weight_sampler.mu.clone(), 
-                    self.transitioner.bayes.weight_sampler.rho.clone(), 
-                    self.transitioner.bayes.bias_sampler.mu.clone(), 
-                    self.transitioner.bayes.bias_sampler.rho.clone())
+        weights_before = self.transitioner.weights()
     
         self.trans_optimizer.zero_grad()
         trans_loss.sum().backward()
@@ -138,106 +140,91 @@ class Agent:
         
         
         if(self.args.weight_change_size == "batch" and self.args.naive_curiosity != "true"):
-            self.trans_clone.load_state_dict(old_state_dict())
-            pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
-                images[:,:-self.args.lookahead].detach(), 
-                speeds[:,:-self.args.lookahead].detach(), 
-                prev_actions[:,:-self.args.lookahead].detach(), sequential_actions.detach())
-            
-            flat_pred_images = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
-            flat_pred_images = flat_pred_images.flatten(2)
-            flat_pred_speeds = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
-            flat_pred_speeds = flat_pred_speeds
-            flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
-            
-            trans_errors_ = F.mse_loss(flat_pred, flat_real.detach(), reduction = "none") 
-            mse_loss_ = torch.sum(trans_errors_.clone())
-            dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
-            trans_loss_ = mse_loss_ + dkl_loss_
-            
-            self.opt_clone.zero_grad()
-            trans_loss_.sum().backward()
-            self.opt_clone.step()
-        
-            weights_after = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
-                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
-                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
-                        self.trans_clone.bayes.bias_sampler.rho.clone())
-            
-            weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
-                dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+            weights_after = self.transitioner.weights()
+            weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+                dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
             weight_changes = torch.tile(weight_change, rewards.shape)
             
             
             
         if(self.args.weight_change_size == "episode" and self.args.naive_curiosity != "true"):
             weight_changes = torch.zeros(rewards.shape)
+            
             for episode in range(weight_changes.shape[0]):
-                self.trans_clone.load_state_dict(old_state_dict())
-                pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
-                    images[episode,:-self.args.lookahead].detach(), 
-                    speeds[episode,:-self.args.lookahead].detach(), 
-                    prev_actions[episode,:-self.args.lookahead].detach(), sequential_actions[episode].detach())
-                                
-                flat_pred_images = pred_next_images_*image_masks[episode].detach()[self.args.lookahead-1:]
-                flat_pred_images = flat_pred_images.flatten(1)
-                flat_pred_speeds = pred_next_speeds_*masks[episode].detach()[self.args.lookahead-1:]
-                flat_pred_speeds = flat_pred_speeds
-                flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
                 
-                trans_errors_ = F.mse_loss(flat_pred, flat_real[episode].detach(), reduction = "none") 
-                mse_loss_ = torch.sum(trans_errors_.clone())
-                dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
+                self.trans_clone.load_state_dict(old_state_dict)
+                
+                trans_errors_ = torch.zeros(rewards.shape)
+                dkl_loss_ = 0
+                for _ in range(self.args.sample_elbo):
+                    pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
+                        images[episode,:-self.args.lookahead].detach(), 
+                        speeds[episode,:-self.args.lookahead].detach(), 
+                        prev_actions[episode,:-self.args.lookahead].detach(), sequential_actions[episode].detach())
+                    
+                    flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
+                    flat_pred_images_ = flat_pred_images_.flatten(2)
+                    flat_pred_speeds_ = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
+                    flat_pred_speeds_ = flat_pred_speeds_
+                    flat_pred_ = torch.cat([flat_pred_images_, flat_pred_speeds_], dim = -1)
+                    
+                    errors_ = F.mse_loss(flat_pred_, flat_real.detach(), reduction = "none") 
+                    errors_ = torch.sum(errors_, -1).unsqueeze(-1)
+                    trans_errors_ += errors_ / self.args.sample_elbo
+                    dkl_loss_ += self.args.dkl_rate_ * b_kl_loss(self.trans_clone) / self.args.sample_elbo
+                mse_loss_ = trans_errors_.sum()
                 trans_loss_ = mse_loss_ + dkl_loss_
                 
                 self.opt_clone.zero_grad()
                 trans_loss_.sum().backward()
                 self.opt_clone.step()
             
-                weights_after = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
-                        self.trans_clone.bayes.weight_sampler.rho.clone(), 
-                        self.trans_clone.bayes.bias_sampler.mu.clone(), 
-                        self.trans_clone.bayes.bias_sampler.rho.clone())
-                
-                weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
-                    dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+                weights_after = self.trans_clone.weights()
+                weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+                    dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
                 weight_changes[episode] = weight_change
             
             
         
         if(self.args.weight_change_size == "step" and self.args.naive_curiosity != "true"):
             weight_changes = torch.zeros(rewards.shape)
+            
             for episode in range(weight_changes.shape[0]):
                 hidden = None
                 for step in range(weight_changes.shape[1]):
-                    self.trans_clone.load_state_dict(old_state_dict())
-                    pred_next_images_, pred_next_speeds_, hidden = self.trans_clone(
-                        images[episode,step:step+self.args.lookahead].detach(), 
-                        speeds[episode,step:step+self.args.lookahead].detach(), 
-                        prev_actions[episode,step:step+self.args.lookahead].detach(), 
-                        sequential_actions[episode,step].unsqueeze(0).detach(), hidden.detach() if hidden != None else hidden)
                     
-                    flat_pred_images = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
-                    flat_pred_images = flat_pred_images.flatten(2)
-                    flat_pred_speeds = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
-                    flat_pred_speeds = flat_pred_speeds
-                    flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
-                
-                    mse_loss_ = F.mse_loss(flat_pred[episode,step], flat_real[episode,step], reduction = "none") 
-                    dkl_loss_ = self.args.dkl_rate * b_kl_loss(self.trans_clone)
+                    self.trans_clone.load_state_dict(old_state_dict)
+                    
+                    trans_errors_ = torch.zeros(rewards.shape)
+                    dkl_loss_ = 0
+                    for _ in range(self.args.sample_elbo):
+                        pred_next_images_, pred_next_speeds_, hidden = self.trans_clone(
+                            images[episode,step:step+self.args.lookahead].detach(), 
+                            speeds[episode,step:step+self.args.lookahead].detach(), 
+                            prev_actions[episode,step:step+self.args.lookahead].detach(), 
+                            sequential_actions[episode,step].unsqueeze(0).detach(), hidden if hidden != None else hidden)
+                        
+                        flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
+                        flat_pred_images_ = flat_pred_images_.flatten(2)
+                        flat_pred_speeds_ = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
+                        flat_pred_speeds_ = flat_pred_speeds_
+                        flat_pred_ = torch.cat([flat_pred_images_, flat_pred_speeds_], dim = -1)
+                        
+                        errors_ = F.mse_loss(flat_pred_, flat_real.detach(), reduction = "none") 
+                        errors_ = torch.sum(errors_, -1).unsqueeze(-1)
+                        trans_errors_ += errors_ / self.args.sample_elbo
+                        dkl_loss_ += self.args.dkl_rate_ * b_kl_loss(self.trans_clone) / self.args.sample_elbo
+                    mse_loss_ = trans_errors_.sum()
                     trans_loss_ = mse_loss_ + dkl_loss_
                     
                     self.opt_clone.zero_grad()
                     trans_loss_.sum().backward()
                     self.opt_clone.step()
                 
-                    weights_after = (self.trans_clone.bayes.weight_sampler.mu.clone(), 
-                            self.trans_clone.bayes.weight_sampler.rho.clone(), 
-                            self.trans_clone.bayes.bias_sampler.mu.clone(), 
-                            self.trans_clone.bayes.bias_sampler.rho.clone())
-                    
-                    weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_after[1]) + \
-                        dkl(weights_after[2], weights_after[3], weights_before[2], weights_after[3])
+                    weights_after = self.trans_clone.weights()
+
+                    weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+                        dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
                     weight_changes[episode,step] = weight_change        
         
         
@@ -249,7 +236,6 @@ class Agent:
             encoded = encoded[:,:-1]
         
         if(self.args.naive_curiosity == "true"):
-            trans_errors = sum([trans_errors[:,:,i] for i in range(trans_errors.shape[-1])]).unsqueeze(-1)
             if(self.args.eta == None):
                 curiosity = self.eta * trans_errors
                 self.eta = self.eta * self.args.eta_rate
