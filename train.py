@@ -73,6 +73,8 @@ class Trainer():
         self.ext= []; self.int_cur = []; self.int_ent = []
         self.rewards = []; self.punishments = []
         self.losses = np.array([[None]*6])
+        self.weight_mean_std = []
+        self.dkl_change = []
         
     def get_GUI(self):
         if(self.env_gui == None):
@@ -104,7 +106,7 @@ class Trainer():
                 if(rewards > 0): self.rewards.append(rewards); self.punishments.append(0)
                 else:            self.punishments.append(rewards); self.rewards.append(0)
         
-        losses, extrinsic, intrinsic_curiosity, intrinsic_entropy = \
+        losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change = \
             self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot_predictions = plot_predictions, epoch = self.e)
         if(append):
             self.ext.append(extrinsic)
@@ -112,6 +114,9 @@ class Trainer():
             self.int_ent.append(intrinsic_entropy)
 
             self.losses = np.concatenate([self.losses, losses])
+            
+            self.weight_mean_std.append(self.agent.transitioner.means_stds())
+            self.dkl_change.append(dkl_change)
 
     def train(self):
         self.agent.train()
@@ -155,7 +160,12 @@ class Trainer():
                     "alpha"       : self.losses[:,2],
                     "actor"       : self.losses[:,3],
                     "crit1"       : self.losses[:,4],
-                    "crit2"       : self.losses[:,5]}
+                    "crit2"       : self.losses[:,5],
+                    "weight_mean" : [w[0] for w in self.weight_mean_std],
+                    "weight_std"  : [w[1] for w in self.weight_mean_std],
+                    "bias_mean"   : [w[2] for w in self.weight_mean_std],
+                    "bias_std"    : [w[3] for w in self.weight_mean_std],
+                    "dkl_change"  : self.dkl_change}
                 torch.save(plot_dict, folder + "/plot_dict.pt")
                 self.close_env(True)
                 break
@@ -175,9 +185,7 @@ class Trainer():
         
         if(arena_name == None):
             arena_name = self.arena_names[self.current_arena]
-            
-        print("Positions in {}".format(arena_name))
-        
+                    
         self.env = Env(arena_name, self.args, GUI = False)
             
         for i in range(size):

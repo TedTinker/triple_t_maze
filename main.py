@@ -51,22 +51,13 @@ else:
         positions_lists = []      
         trainer.new_load_name(folder, load_name)
         load_int = int(load_name)
-        
-        #which_arena = 0 if load_int <= epoch_sum[0] else 1 if load_int <= epoch_sum[1] else 2
-        #next_arena = 1 if load_int == epoch_sum[0] else 2 if load_int == epoch_sum[1] else None
-        
-        #print("\n\nWhich: {}. Next: {}.\n\n".format(which_arena, next_arena))
-        
         which_arena = 0 
         while(load_int > epoch_sum[which_arena]): which_arena += 1
         
         next_arena = None
         for i, s in enumerate(epoch_sum):
             if(load_int == s): next_arena = i + 1
-        if(next_arena != None and next_arena >= len(args.map)): next_arena = None
-        
-        print("\n\nWhich: {}. Next: {}.\n\n".format(which_arena, next_arena))
-        
+        if(next_arena != None and next_arena >= len(args.map)): next_arena = None        
         if(next_arena == None): pass 
         else:
             trainer.current_arena = next_arena

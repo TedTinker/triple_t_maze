@@ -71,22 +71,23 @@ class Agent:
     
     def learn(self, batch_size, iterations, num = -1, plot_predictions = False, epoch = 0):
         if(iterations != 1):
-            losses = []; extrinsic = []; intrinsic_curiosity = []; intrinsic_entropy = []
+            losses = []; extrinsic = []; intrinsic_curiosity = []; intrinsic_entropy = [] ; dkl_changes = []
             for i in range(iterations): 
-                l, e, ic, ie = self.learn(batch_size, 1, num = i, plot_predictions = plot_predictions)
+                l, e, ic, ie, dkl_change = self.learn(batch_size, 1, num = i, plot_predictions = plot_predictions)
                 losses.append(l); extrinsic.append(e)
-                intrinsic_curiosity.append(ic); intrinsic_entropy.append(ie)
+                intrinsic_curiosity.append(ic); intrinsic_entropy.append(ie) ; dkl_changes.append(dkl_change)
             losses = np.concatenate(losses)
             extrinsic = [e for e in extrinsic if e != None]
             intrinsic_curiosity = [e for e in intrinsic_curiosity if e != None]
             intrinsic_entropy = [e for e in intrinsic_entropy if e != None]
+            dkl_change = np.concatenate(dkl_changes)
             try:    extrinsic = sum(extrinsic)/len(extrinsic)
             except: extrinsic = None
             try:    intrinsic_curiosity = sum(intrinsic_curiosity)/len(intrinsic_curiosity)
             except: intrinsic_curiosity = None
             try:    intrinsic_entropy = sum(intrinsic_entropy)/len(intrinsic_entropy)
             except: intrinsic_entropy = None
-            return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy)
+            return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change)
                 
         self.steps += 1
 
@@ -137,15 +138,13 @@ class Agent:
         trans_loss.sum().backward()
         self.trans_optimizer.step()
         
-        
-        
-        if(self.args.weight_change_size == "batch" and self.args.naive_curiosity != "true"):
-            weights_after = self.transitioner.weights()
-            weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
-                dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
-            weight_changes = torch.tile(weight_change, rewards.shape)
-            
-            
+        weights_after = self.transitioner.weights()
+        weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+            dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
+        weight_changes = torch.tile(weight_change, rewards.shape)
+        dkl_change = log(weight_changes.sum().item())
+                
+    
             
         if(self.args.weight_change_size == "episode" and self.args.naive_curiosity != "true"):
             weight_changes = torch.zeros(rewards.shape)
@@ -354,7 +353,7 @@ class Agent:
         try:    intrinsic_curiosity = log(intrinsic_curiosity)
         except: pass
         
-        return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy)
+        return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change)
                      
     def soft_update(self, local_model, target_model, tau):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):

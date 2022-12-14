@@ -97,8 +97,7 @@ class Transitioner(nn.Module):
             ConstrainedConv2d(
                 in_channels = 16, 
                 out_channels = 4,
-                kernel_size = (1,1),
-                bias = False))
+                kernel_size = (1,1)))
 
         self.next_speed = nn.Sequential(
             nn.Linear(self.args.hidden_size, 1, bias = False)) 
@@ -188,6 +187,11 @@ class Transitioner(nn.Module):
             torch.log1p(torch.exp(torch.mean(weights[1]))).item(),
             torch.mean(weights[2]).item(),
             torch.log1p(torch.exp(torch.mean(weights[3]))).item())
+        
+    def bayesian(self):
+        for module in self.modules():
+            if isinstance(module, (BayesianModule)):
+                print(module)
 
 
 
@@ -279,6 +283,7 @@ if __name__ == "__main__":
 
     print("\n\n")
     print(transitioner)
+    transitioner.bayesian()
     print()
     print(torch_summary(transitioner, 
                         ((1, 1, args.image_size, args.image_size, 4), # Image

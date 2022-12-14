@@ -227,6 +227,11 @@ def make_end_pics(order):
     actor_min_max = get_min_max("actor", plot_dict_dict)
     critic1_min_max = get_min_max("crit1", plot_dict_dict)
     critic2_min_max = get_min_max("crit2", plot_dict_dict)
+    weight_mean_min_max = get_min_max("weight_mean", plot_dict_dict)
+    weight_std_min_max = get_min_max("weight_std", plot_dict_dict)
+    bias_mean_min_max = get_min_max("bias_mean", plot_dict_dict)
+    bias_std_min_max = get_min_max("bias_std", plot_dict_dict)
+    dkl_change_min_max = get_min_max("dkl_change", plot_dict_dict)
     
     trans_min_max = tuple_min_max([mse_min_max, dkl_min_max])    
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
@@ -234,7 +239,8 @@ def make_end_pics(order):
     rew_min_max = (rew_min_max[0]*1.2, rew_min_max[1]*1.2)
     ext_min_max = tuple_min_max([ext_min_max, cur_min_max, ent_min_max]) 
     
-    mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max]
+    mins_maxs = [rew_min_max, ext_min_max, trans_min_max, actor_min_max, critic_min_max, alpha_min_max, 
+                 weight_mean_min_max, bias_mean_min_max, weight_std_min_max, bias_std_min_max, dkl_change_min_max]
     
     print("\n\nStarting plots.\n{}\n\n".format(duration()))
         

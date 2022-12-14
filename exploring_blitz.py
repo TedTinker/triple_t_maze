@@ -162,7 +162,7 @@ def epoch(source):
     for _ in range(sample_size):
         pred = example(Xs) 
         mse_loss += F.mse_loss(pred, Ys.to(device))
-        kl_loss  += b_kl_loss(example) * .001
+        kl_loss  += b_kl_loss(example) * .01
     mse_loss /= sample_size
     kl_loss  /= sample_size
     loss = mse_loss + kl_loss

@@ -65,7 +65,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=tuple, default = (500, 1500, 3000))
+parser.add_argument('--epochs_per_arena',   type=tuple, default = (10, 10, 10))#(500, 1500, 3000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -75,14 +75,14 @@ parser.add_argument("--eta",                type=float, default = None) # Scale 
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
 parser.add_argument("--dkl_rate",           type=float, default = .5)#.1)   # Scale bayesian dkl
-parser.add_argument("--sample_elbo",        type=int,   default = 3)    # Samples for elbo
+parser.add_argument("--sample_elbo",        type=int,   default = 10)    # Samples for elbo
 parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
 parser.add_argument("--weight_change_size", type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 250)
+parser.add_argument('--show_and_save',      type=int,   default = 5)#250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 5)#250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -382,7 +382,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     if(type(plot_dict) == list): many = True  ; epochs = len(plot_dict[0]["rew"])
     else:                        many = False ; epochs = len(plot_dict["rew"])
     
-    fig, axs = plt.subplots(6, 1, figsize = (7, 30))
+    fig, axs = plt.subplots(9, 1, figsize = (7, 45))
     xs = [i for i in range(epochs)]
     
     
@@ -402,7 +402,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
     ax.plot([x for x in range(len(rew))], rew, color = "turquoise", alpha = 2*line_transparency, label = "Reward")
     ax.plot([x for x in range(len(pun))], pun, color = "pink", alpha = 2*line_transparency,      label = "Punishment")
-    ax.set_xlabel("Time")
+    ax.set_xlabel("Epochs")
     ax.set_ylabel("Rewards/Punishments")
     ax.title.set_text("Cumulative Rewards and Punishments")
     divide_arenas(xs, ax)
@@ -591,6 +591,69 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax.title.set_text("Kind of Exit")
     ax.set_xlabel("Episodes")
     ax.set_ylabel("Which Exit")
+    
+    
+    
+    # Weight means
+    ax1 = axs[6]
+    ax2 = ax1.twinx()
+    if(many): 
+        weight_mean_xs, low_weight_mean, weight_mean, high_weight_mean = get_quantiles(plot_dict, "weight_mean")
+        bias_mean_xs, low_bias_mean, bias_mean, high_bias_mean = get_quantiles(plot_dict, "bias_mean")
+        ax1.fill_between(weight_mean_xs, low_weight_mean, high_weight_mean, color = "red", alpha = 2*fill_transparency, linewidth = 0)
+        ax2.fill_between(bias_mean_xs, low_bias_mean, high_bias_mean, color = "blue", alpha = 2*fill_transparency, linewidth = 0)
+    else:
+        weight_mean = plot_dict["weight_mean"]
+        bias_mean = plot_dict["bias_mean"]
+    ax1.plot(xs, weight_mean, color = "red", alpha = 2*line_transparency, label = "Weight Mean")
+    ax2.plot(xs, bias_mean, color = "blue", alpha = 2*line_transparency, label = "Bias Mean")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Weight Mean")
+    ax2.set_ylabel("Bias Mean")
+    ax1.title.set_text("Probability Distribution Means")
+    divide_arenas(xs, ax)
+    ax1.legend(loc = 'upper left')
+    ax2.legend(loc = 'lower left')
+    ax1.set_ylim(mins_maxs[6])
+    ax2.set_ylim(mins_maxs[7])
+    
+    # Weight stds
+    ax1 = axs[7]
+    ax2 = ax1.twinx()
+    if(many): 
+        weight_std_xs, low_weight_std, weight_std, high_weight_std = get_quantiles(plot_dict, "weight_std")
+        bias_std_xs, low_bias_std, bias_std, high_bias_std = get_quantiles(plot_dict, "bias_std")
+        ax1.fill_between(weight_std_xs, low_weight_std, high_weight_std, color = "red", alpha = fill_transparency, linewidth = 0)
+        ax2.fill_between(bias_std_xs, low_bias_std, high_bias_std, color = "blue", alpha = fill_transparency, linewidth = 0)
+    else:
+        weight_std = plot_dict["weight_std"]
+        bias_std = plot_dict["bias_std"]
+    ax1.plot(xs, weight_std, color = "red", alpha = line_transparency, label = "Weight STD")
+    ax2.plot(xs, bias_std, color = "blue", alpha = line_transparency, label = "Bias STD")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Weight STD")
+    ax2.set_ylabel("Bias STD")
+    ax1.title.set_text("Probability Distribution STDs")
+    divide_arenas(xs, ax)
+    ax1.legend(loc = 'upper left')
+    ax2.legend(loc = 'lower left')
+    ax1.set_ylim(mins_maxs[8])
+    ax2.set_ylim(mins_maxs[9])
+    
+    # Changes in DKL
+    ax = axs[8]
+    if(many): 
+        dkl_xs, low_dkl, dkl, high_dkl = get_quantiles(plot_dict, "dkl_change")
+        ax.fill_between(dkl_xs, low_dkl, high_dkl, color = "green", alpha = fill_transparency, linewidth = 0)
+    else:
+        dkl = plot_dict["dkl_change"]
+    ax.plot(xs, dkl, color = "green", alpha = line_transparency, label = "ln DKL change")
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("ln DKL change")
+    ax.title.set_text("Change in DKL")
+    divide_arenas(xs, ax)
+    #ax.legend(loc = 'lower left')
+    ax.set_ylim(mins_maxs[10])
     
 
 
