@@ -73,7 +73,7 @@ class Trainer():
         self.ext= []; self.int_cur = []; self.int_ent = []
         self.rewards = []; self.punishments = []
         self.losses = np.array([[None]*6])
-        self.weight_mean_std = []
+        self.weight_changes = []
         self.dkl_change = []
         
     def get_GUI(self):
@@ -106,7 +106,7 @@ class Trainer():
                 if(rewards > 0): self.rewards.append(rewards); self.punishments.append(0)
                 else:            self.punishments.append(rewards); self.rewards.append(0)
         
-        losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change = \
+        losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change, weight_changes = \
             self.agent.learn(batch_size = self.args.batch_size, iterations = self.args.iterations, plot_predictions = plot_predictions, epoch = self.e)
         if(append):
             self.ext.append(extrinsic)
@@ -115,7 +115,7 @@ class Trainer():
 
             self.losses = np.concatenate([self.losses, losses])
             
-            self.weight_mean_std.append(self.agent.transitioner.means_stds())
+            self.weight_changes.append(weight_changes)
             self.dkl_change.append(dkl_change)
 
     def train(self):
@@ -161,10 +161,10 @@ class Trainer():
                     "actor"       : self.losses[:,3],
                     "crit1"       : self.losses[:,4],
                     "crit2"       : self.losses[:,5],
-                    "weight_mean" : [w[0] for w in self.weight_mean_std],
-                    "weight_std"  : [w[1] for w in self.weight_mean_std],
-                    "bias_mean"   : [w[2] for w in self.weight_mean_std],
-                    "bias_std"    : [w[3] for w in self.weight_mean_std],
+                    "weight_mean" : [w[0] for w in self.weight_changes],
+                    "weight_std"  : [w[1] for w in self.weight_changes],
+                    "bias_mean"   : [w[2] for w in self.weight_changes],
+                    "bias_std"    : [w[3] for w in self.weight_changes],
                     "dkl_change"  : self.dkl_change}
                 torch.save(plot_dict, folder + "/plot_dict.pt")
                 self.close_env(True)

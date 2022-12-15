@@ -11,7 +11,7 @@ import numpy as np
 from math import log
 from copy import deepcopy
 
-from utils import args, device, plot_some_predictions, dkl
+from utils import args, device, plot_some_predictions, dkl, average_change
 from buffer import RecurrentReplayBuffer
 from models import Transitioner, Actor, Critic
 
@@ -40,10 +40,6 @@ class Agent:
         
         self.trans_clone = Transitioner(self.args)
         self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_lr, weight_decay=0)
-        
-        for name, param in self.trans_clone.named_children():
-            if(name != "bayes"):
-                param.requires_grad_(False)
                            
         self.actor = Actor(self.args)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr, weight_decay=0)     
@@ -71,11 +67,12 @@ class Agent:
     
     def learn(self, batch_size, iterations, num = -1, plot_predictions = False, epoch = 0):
         if(iterations != 1):
-            losses = []; extrinsic = []; intrinsic_curiosity = []; intrinsic_entropy = [] ; dkl_changes = []
+            losses = []; extrinsic = []; intrinsic_curiosity = []; intrinsic_entropy = [] ; dkl_changes = [] ; weight_changes = [0,0,0,0]
             for i in range(iterations): 
-                l, e, ic, ie, dkl_change = self.learn(batch_size, 1, num = i, plot_predictions = plot_predictions)
+                l, e, ic, ie, dkl_change, weight_change = self.learn(batch_size, 1, num = i, plot_predictions = plot_predictions)
                 losses.append(l); extrinsic.append(e)
                 intrinsic_curiosity.append(ic); intrinsic_entropy.append(ie) ; dkl_changes.append(dkl_change)
+                weight_changes = [w + nw/iterations for w, nw in zip(weight_changes, weight_change)]
             losses = np.concatenate(losses)
             extrinsic = [e for e in extrinsic if e != None]
             intrinsic_curiosity = [e for e in intrinsic_curiosity if e != None]
@@ -87,7 +84,7 @@ class Agent:
             except: intrinsic_curiosity = None
             try:    intrinsic_entropy = sum(intrinsic_entropy)/len(intrinsic_entropy)
             except: intrinsic_entropy = None
-            return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change)
+            return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change, weight_changes)
                 
         self.steps += 1
 
@@ -139,17 +136,19 @@ class Agent:
         self.trans_optimizer.step()
         
         weights_after = self.transitioner.weights()
-        weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+        dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
             dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
-        weight_changes = torch.tile(weight_change, rewards.shape)
-        dkl_change = log(weight_changes.sum().item())
+        dkl_changes = torch.tile(dkl_change, rewards.shape)
+        dkl_change = log(dkl_changes.sum().item())
+        
+        weight_change = average_change(weights_before, weights_after)
                 
     
             
-        if(self.args.weight_change_size == "episode" and self.args.naive_curiosity != "true"):
-            weight_changes = torch.zeros(rewards.shape)
+        if(self.args.dkl_change_size == "episode" and self.args.naive_curiosity != "true"):
+            dkl_changes = torch.zeros(rewards.shape)
             
-            for episode in range(weight_changes.shape[0]):
+            for episode in range(dkl_changes.shape[0]):
                 
                 self.trans_clone.load_state_dict(old_state_dict)
                 
@@ -170,7 +169,7 @@ class Agent:
                     errors_ = F.mse_loss(flat_pred_, flat_real.detach(), reduction = "none") 
                     errors_ = torch.sum(errors_, -1).unsqueeze(-1)
                     trans_errors_ += errors_ / self.args.sample_elbo
-                    dkl_loss_ += self.args.dkl_rate_ * b_kl_loss(self.trans_clone) / self.args.sample_elbo
+                    dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
                 mse_loss_ = trans_errors_.sum()
                 trans_loss_ = mse_loss_ + dkl_loss_
                 
@@ -179,18 +178,18 @@ class Agent:
                 self.opt_clone.step()
             
                 weights_after = self.trans_clone.weights()
-                weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+                dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
                     dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
-                weight_changes[episode] = weight_change
+                dkl_changes[episode] = dkl_change
             
             
         
-        if(self.args.weight_change_size == "step" and self.args.naive_curiosity != "true"):
-            weight_changes = torch.zeros(rewards.shape)
+        if(self.args.dkl_change_size == "step" and self.args.naive_curiosity != "true"):
+            dkl_changes = torch.zeros(rewards.shape)
             
-            for episode in range(weight_changes.shape[0]):
+            for episode in range(dkl_changes.shape[0]):
                 hidden = None
-                for step in range(weight_changes.shape[1]):
+                for step in range(dkl_changes.shape[1]):
                     
                     self.trans_clone.load_state_dict(old_state_dict)
                     
@@ -212,7 +211,7 @@ class Agent:
                         errors_ = F.mse_loss(flat_pred_, flat_real.detach(), reduction = "none") 
                         errors_ = torch.sum(errors_, -1).unsqueeze(-1)
                         trans_errors_ += errors_ / self.args.sample_elbo
-                        dkl_loss_ += self.args.dkl_rate_ * b_kl_loss(self.trans_clone) / self.args.sample_elbo
+                        dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
                     mse_loss_ = trans_errors_.sum()
                     trans_loss_ = mse_loss_ + dkl_loss_
                     
@@ -222,9 +221,9 @@ class Agent:
                 
                     weights_after = self.trans_clone.weights()
 
-                    weight_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
+                    dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
                         dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
-                    weight_changes[episode,step] = weight_change        
+                    dkl_changes[episode,step] = dkl_change        
         
         
         
@@ -246,10 +245,10 @@ class Agent:
         
         else:
             if(self.args.eta == None):
-                curiosity = self.eta * weight_changes
+                curiosity = self.eta * dkl_changes
                 self.eta = self.eta * self.args.eta_rate
             else:
-                curiosity = self.args.eta * weight_changes
+                curiosity = self.args.eta * dkl_changes
                 self.args.eta = self.args.eta * self.args.eta_rate
                 
             print("\nFEB curiosity: {}, {}.\n".format(curiosity.shape, torch.sum(curiosity)))
@@ -353,7 +352,7 @@ class Agent:
         try:    intrinsic_curiosity = log(intrinsic_curiosity)
         except: pass
         
-        return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change)
+        return(losses, extrinsic, intrinsic_curiosity, intrinsic_entropy, dkl_change, weight_change)
                      
     def soft_update(self, local_model, target_model, tau):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):

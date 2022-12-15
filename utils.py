@@ -26,7 +26,7 @@ parser.add_argument("--id",                 type=int,   default = 0)
 
 # Environment 
 parser.add_argument('--map',                type=tuple, default = ("1", "2", "3"))
-parser.add_argument('--boxes_per_cube',     type=int,   default = 2)  
+parser.add_argument('--boxes_per_cube',     type=int,   default = 1)  
 parser.add_argument('--bigger_cube',        type=float, default = 1.05)    
 parser.add_argument('--wall_punishment',    type=float, default = .1)
 parser.add_argument('--reward_scaling',     type=float, default = .999)    
@@ -65,7 +65,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=tuple, default = (10, 10, 10))#(500, 1500, 3000))
+parser.add_argument('--epochs_per_arena',   type=tuple, default = (500, 1500, 3000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -74,15 +74,15 @@ parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-A
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
-parser.add_argument("--dkl_rate",           type=float, default = .5)#.1)   # Scale bayesian dkl
-parser.add_argument("--sample_elbo",        type=int,   default = 10)    # Samples for elbo
+parser.add_argument("--dkl_rate",           type=float, default = .1)   # Scale bayesian dkl
+parser.add_argument("--sample_elbo",        type=int,   default = 1)    # Samples for elbo
 parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
-parser.add_argument("--weight_change_size", type=str,   default = "batch")  # "batch", "episode", "step"
+parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
 parser.add_argument('--too_long',           type=int,   default = None)
-parser.add_argument('--show_and_save',      type=int,   default = 5)#250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 5)#250)
+parser.add_argument('--show_and_save',      type=int,   default = 250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -146,13 +146,19 @@ print("\nID: {}_{}.\nDevice: {}.\n".format(args.explore_type, str(args.id).zfill
 
 
 
-def dkl(mu_1, rho_1, mu_2, rho_2):
-    sigma_1 = torch.pow(torch.log1p(torch.exp(rho_1)), 2)
-    sigma_2 = torch.pow(torch.log1p(torch.exp(rho_2)), 2)
+def dkl(mu_1, sigma_1, mu_2, sigma_2):
+    sigma_1 = torch.pow(sigma_1, 2)
+    sigma_2 = torch.pow(sigma_2, 2)
     term_1 = torch.pow(mu_2 - mu_1, 2) / sigma_2 
     term_2 = sigma_1 / sigma_2 
     term_3 = torch.log(term_2)
     return((.5 * (term_1 + term_2 - term_3 - 1)).sum())
+
+def average_change(before, after):
+    change = []
+    for b, a in zip(before, after):
+        change.append(torch.mean(b-a).item())
+    return(change)
 
 
 
@@ -610,7 +616,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Weight Mean")
     ax2.set_ylabel("Bias Mean")
-    ax1.title.set_text("Probability Distribution Means")
+    ax1.title.set_text("Change in Weight Means")
     divide_arenas(xs, ax)
     ax1.legend(loc = 'upper left')
     ax2.legend(loc = 'lower left')
@@ -633,7 +639,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Weight STD")
     ax2.set_ylabel("Bias STD")
-    ax1.title.set_text("Probability Distribution STDs")
+    ax1.title.set_text("Change in Weight STDs")
     divide_arenas(xs, ax)
     ax1.legend(loc = 'upper left')
     ax2.legend(loc = 'lower left')

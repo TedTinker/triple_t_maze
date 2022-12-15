@@ -107,27 +107,26 @@ class Example(nn.Module):
         return(x)
     
     def weights(self):
-        weight_mu = [] ; weight_rho = []
-        bias_mu = [] ;   bias_rho = []
+        weight_mu = [] ; weight_sigma = []
+        bias_mu = [] ;   bias_sigma = []
         for module in self.modules():
             if isinstance(module, (BayesianModule)):
                 weight_mu.append(module.weight_sampler.mu.clone().flatten())
-                weight_rho.append(module.weight_sampler.rho.clone().flatten())
+                weight_sigma.append(torch.log1p(torch.exp(module.weight_sampler.rho.clone().flatten())))
                 bias_mu.append(module.bias_sampler.mu.clone().flatten()) 
-                bias_rho.append(module.bias_sampler.rho.clone().flatten())
+                bias_sigma.append(torch.log1p(torch.exp(module.bias_sampler.rho.clone().flatten())))
         return(
             torch.cat(weight_mu, -1),
-            torch.cat(weight_rho, -1),
+            torch.cat(weight_sigma, -1),
             torch.cat(bias_mu, -1),
-            torch.cat(bias_rho, -1))
+            torch.cat(bias_sigma, -1))
         
-    def means_stds(self):
-        weights = self.weights()
-        return(
-            torch.mean(weights[0]).item(),
-            torch.log1p(torch.exp(torch.mean(weights[1]))).item(),
-            torch.mean(weights[2]).item(),
-            torch.log1p(torch.exp(torch.mean(weights[3]))).item())
+def average_change(before, after):
+    change = []
+    for b, a in zip(before, after):
+        change.append(torch.mean(b-a).item())
+    return(change)
+
         
 
 example = Example()
@@ -144,25 +143,17 @@ changes = []
 
 
 
-def dkl(mu_1, rho_1, mu_2, rho_2):
-    sigma_1 = torch.pow(torch.log1p(torch.exp(rho_1)), 2)
-    sigma_2 = torch.pow(torch.log1p(torch.exp(rho_2)), 2)
-    term_1 = torch.pow(mu_2 - mu_1, 2) / sigma_2 
-    term_2 = sigma_1 / sigma_2 
-    term_3 = torch.log(term_2)
-    return((.5 * (term_1 + term_2 - term_3 - 1)).sum())
-
 def epoch(source):
     if(source == "test"):  example.eval()  ; Xs = test_xs  ; Ys = test_ys 
     if(source == "train"): example.train() ; Xs = train_xs ; Ys = train_ys
     if(source == "both"):  example.eval()  ; Xs = xs       ; Ys = ys
     mse_loss = 0 
     kl_loss  = 0
-    sample_size = 2
+    sample_size = 10
     for _ in range(sample_size):
         pred = example(Xs) 
         mse_loss += F.mse_loss(pred, Ys.to(device))
-        kl_loss  += b_kl_loss(example) * .01
+        kl_loss  += b_kl_loss(example) * .001
     mse_loss /= sample_size
     kl_loss  /= sample_size
     loss = mse_loss + kl_loss
@@ -183,7 +174,7 @@ def epoch(source):
             dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
                 
         dkls.append(weight_change.item())
-        weights.append(example.means_stds())
+        weights.append(average_change(weights_before, weights_after))
         
     return(pred)
 
@@ -245,10 +236,10 @@ def plot(train_pred, test_pred, title = "", means = None, stds = None):
     plt.figure(figsize=(10,10))
     for change in changes:
         plt.axvline(change, color = "black", alpha = .2)
-    plt.plot([w[0] for w in weights], color = "blue", alpha = .3, label = "Average weight mean")
-    plt.plot([w[2] for w in weights], color = "red", alpha = .3, label = "Average bias mean")
+    plt.plot([w[0] for w in weights], color = "blue", alpha = .3, label = "weight mean")
+    plt.plot([w[2] for w in weights], color = "red", alpha = .3, label = "bias mean")
     plt.legend()
-    plt.title("Weights")
+    plt.title("Changes in Weight Means")
     #plt.savefig("saves/means_" + title + ".png")
     plt.show()
     plt.close()
@@ -256,10 +247,10 @@ def plot(train_pred, test_pred, title = "", means = None, stds = None):
     plt.figure(figsize=(10,10))
     for change in changes:
         plt.axvline(change, color = "black", alpha = .2)
-    plt.plot([w[1] for w in weights], color = "blue", alpha = .3, label = "Average weight std")
-    plt.plot([w[3] for w in weights], color = "red", alpha = .3, label = "Average bias std")
+    plt.plot([w[1] for w in weights], color = "blue", alpha = .3, label = "weight std")
+    plt.plot([w[3] for w in weights], color = "red", alpha = .3, label = "bias std")
     plt.legend()
-    plt.title("Weights")
+    plt.title("Changes in Weight STDs")
     #plt.savefig("saves/stds_" + title + ".png")
     plt.show()
     plt.close()

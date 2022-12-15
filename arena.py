@@ -33,7 +33,7 @@ class to_push:
         for i in range(len(self.rew)):
             if(self.rew[i] > 0):
                 self.rew[i] = self.rew[i]* (self.args.reward_scaling**i)
-        self.rew = add_discount(self.rew, self.args.gamma) # I'm not sure I should have this?
+        self.rew = add_discount(self.rew, self.args.gamma) # This isn't what discount means, but I really helps.
         
     def push(self, memory, agent):
         for _ in range(len(self.rew)):
@@ -212,7 +212,7 @@ class Arena():
         return(col)
 
 if __name__ == "__main__":
-    arena = Arena(arena_name = "t", GUI = True)
+    arena = Arena(arena_name = "3", GUI = True)
     arena.start_arena()
     
 print("arena.py loaded.")

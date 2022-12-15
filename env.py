@@ -196,11 +196,12 @@ class Env():
         exit = which[0] != "FAIL"
         if(end and not exit): reward = -1
         return(end, exit, reward)
+    
       
 
 
 if __name__ == "__main__":
-    env = Env("t", GUI = True)
+    env = Env("3", GUI = True)
     env.reset()   
     env.render("body") 
     end = False
@@ -219,4 +220,8 @@ if __name__ == "__main__":
 
 
 print("env.py loaded.")
+
+
+
+
 # %%

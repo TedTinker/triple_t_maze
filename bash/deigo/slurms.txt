@@ -80,3 +80,16 @@ step_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --et
 step_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --weight_change_size step
 step_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --weight_change_size step
 step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --weight_change_size step
+
+
+
+
+
+1_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 1
+2_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 2
+4_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 4
+7_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 7
+10_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 10
+15_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 15
+20_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 20
+25_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 25

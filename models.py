@@ -166,27 +166,19 @@ class Transitioner(nn.Module):
         return(next_image, next_speed, hidden)
     
     def weights(self):
-        weight_mu = [] ; weight_rho = []
-        bias_mu = [] ;   bias_rho = []
+        weight_mu = [] ; weight_sigma = []
+        bias_mu = [] ;   bias_sigma = []
         for module in self.modules():
             if isinstance(module, (BayesianModule)):
                 weight_mu.append(module.weight_sampler.mu.clone().flatten())
-                weight_rho.append(module.weight_sampler.rho.clone().flatten())
+                weight_sigma.append(torch.log1p(torch.exp(module.weight_sampler.rho.clone().flatten())))
                 bias_mu.append(module.bias_sampler.mu.clone().flatten()) 
-                bias_rho.append(module.bias_sampler.rho.clone().flatten())
+                bias_sigma.append(torch.log1p(torch.exp(module.bias_sampler.rho.clone().flatten())))
         return(
             torch.cat(weight_mu, -1),
-            torch.cat(weight_rho, -1),
+            torch.cat(weight_sigma, -1),
             torch.cat(bias_mu, -1),
-            torch.cat(bias_rho, -1))
-        
-    def means_stds(self):
-        weights = self.weights()
-        return(
-            torch.mean(weights[0]).item(),
-            torch.log1p(torch.exp(torch.mean(weights[1]))).item(),
-            torch.mean(weights[2]).item(),
-            torch.log1p(torch.exp(torch.mean(weights[3]))).item())
+            torch.cat(bias_sigma, -1))
         
     def bayesian(self):
         for module in self.modules():
