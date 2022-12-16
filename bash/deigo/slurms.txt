@@ -63,33 +63,41 @@ batch_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --e
 batch_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001
 batch_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005
 
-episode_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001 --weight_change_size episode
-episode_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005 --weight_change_size episode
-episode_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001 --weight_change_size episode
-episode_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000005 --weight_change_size episode
-episode_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --weight_change_size episode
-episode_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --weight_change_size episode
-episode_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --weight_change_size episode
-episode_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --weight_change_size episode
+episode_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001 --dkl_change_size episode
+episode_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005 --dkl_change_size episode
+episode_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001 --dkl_change_size episode
+episode_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000005 --dkl_change_size episode
+episode_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --dkl_change_size episode
+episode_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --dkl_change_size episode
+episode_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --dkl_change_size episode
+episode_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --dkl_change_size episode
 
-step_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001 --weight_change_size step
-step_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005 --weight_change_size step
-step_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001 --weight_change_size step
-step_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000005 --weight_change_size step
-step_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --weight_change_size step
-step_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --weight_change_size step
-step_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --weight_change_size step
-step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --weight_change_size step
-
-
+step_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001 --dkl_change_size step
+step_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005 --dkl_change_size step
+step_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001 --dkl_change_size step
+step_curiosity_4 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000005 --dkl_change_size step
+step_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00001 --dkl_change_size step
+step_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --dkl_change_size step
+step_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --dkl_change_size step
+step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --dkl_change_size step
 
 
 
-1_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 1
-2_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 2
-4_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 4
-7_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 7
-10_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 10
-15_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 15
-20_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 20
-25_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 25
+
+
+1_elbo_sample     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 1
+2_elbo_sample     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 2
+4_elbo_sample     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 4
+7_elbo_sample     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 7
+10_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 10
+15_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 15
+20_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 20
+25_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 25
+30_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30
+40_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 40
+50_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 50
+60_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 60
+70_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 70
+80_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 80
+90_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 90
+100_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 100

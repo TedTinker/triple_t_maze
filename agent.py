@@ -185,6 +185,7 @@ class Agent:
             
         
         if(self.args.dkl_change_size == "step" and self.args.naive_curiosity != "true"):
+            print("\n\nHERE!\n\n")
             dkl_changes = torch.zeros(rewards.shape)
             
             for episode in range(dkl_changes.shape[0]):
