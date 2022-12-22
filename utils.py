@@ -74,13 +74,12 @@ parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-A
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
-parser.add_argument("--dkl_rate",           type=float, default = .1)   # Scale bayesian dkl
-parser.add_argument("--sample_elbo",        type=int,   default = 30)    # Samples for elbo
+parser.add_argument("--dkl_rate",           type=float, default = .0001)# Scale bayesian dkl
+parser.add_argument("--sample_elbo",        type=int,   default = 5)   # Samples for elbo
 parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
 parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
-parser.add_argument('--too_long',           type=int,   default = None)
 parser.add_argument('--show_and_save',      type=int,   default = 250)
 parser.add_argument('--show_and_save_pred', type=int,   default = 250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
@@ -358,11 +357,9 @@ def plot_rewards(rewards):
 
     
     
-def get_x_y(losses, too_long = None):
+def get_x_y(losses):
     x = [i for i in range(len(losses)) if losses[i] != None]
     y = [l for l in losses if l != None]
-    if(too_long != None and len(x) > too_long):
-        x = x[-too_long:]; y = y[-too_long:]
     return(x, y)
 
 def normalize(this):
@@ -521,18 +518,22 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         no_alpha = False
     
     # Trans losses
-    ax = axs[3]
+    ax1 = axs[3]
+    ax2 = ax1.twinx()
     if(many): 
-        ax.fill_between(mse_xs, low_mse_y, high_mse_y, color = "green", alpha = fill_transparency, linewidth = 0)
-        ax.fill_between(dkl_xs, low_dkl_y, high_dkl_y, color = "red", alpha = fill_transparency, linewidth = 0)
-    ax.plot(mse_xs, mse_y, color = "green", alpha = line_transparency, label = "ln mse")
-    ax.plot(dkl_xs, dkl_y, color = "red", alpha = line_transparency, label = "ln dkl")
-    ax.legend(loc = 'upper left')
-    divide_arenas(dkl_xs, ax)
-    ax.set_ylim(mins_maxs[2])
-    ax.set_xlabel("Epochs")
-    ax.set_ylabel("ln Trans losses")
-    ax.title.set_text("Transitioner losses")
+        ax1.fill_between(mse_xs, low_mse_y, high_mse_y, color = "green", alpha = fill_transparency, linewidth = 0)
+        ax2.fill_between(dkl_xs, low_dkl_y, high_dkl_y, color = "red", alpha = fill_transparency, linewidth = 0)
+    ax1.plot(mse_xs, mse_y, color = "green", alpha = line_transparency, label = "ln MSE Accuracy")
+    ax2.plot(dkl_xs, dkl_y, color = "red", alpha = line_transparency, label = "ln Complexity")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("ln MSE Accuracy")
+    ax2.set_ylabel("ln Complexity")
+    ax1.legend(loc = 'upper left')        
+    ax2.legend(loc = 'lower left')
+    ax1.set_ylim(mins_maxs[2])
+    ax2.set_ylim(mins_maxs[3])
+    divide_arenas(dkl_xs, ax2)
+    ax1.title.set_text("Transitioner losses")
     
     # Plot losses for actor, critics, and alpha
     ax1 = axs[4]
@@ -541,7 +542,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Actor losses")
     ax1.legend(loc = 'upper left')
-    ax1.set_ylim(mins_maxs[3])
+    ax1.set_ylim(mins_maxs[4])
 
     ax2 = ax1.twinx()
     if(many): 
@@ -551,7 +552,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax2.plot(crit2_xs, crit2_y, color='blue', alpha = line_transparency, linestyle = ":",  label = "Critic")
     ax2.set_ylabel("ln Critic losses")
     ax2.legend(loc = 'lower left')
-    ax2.set_ylim(mins_maxs[4])
+    ax2.set_ylim(mins_maxs[5])
     
     if(not no_alpha):
         ax3 = ax1.twinx()
@@ -560,7 +561,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         ax3.plot(alpha_xs, alpha_y, color = (0,0,0,line_transparency), label = "Alpha")
         ax3.set_ylabel("Alpha losses")
         ax3.legend(loc = 'upper right')
-        ax3.set_ylim(mins_maxs[5])
+        ax3.set_ylim(mins_maxs[6])
         
     divide_arenas(xs, ax1)
     
@@ -620,8 +621,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     divide_arenas(xs, ax)
     ax1.legend(loc = 'upper left')
     ax2.legend(loc = 'lower left')
-    ax1.set_ylim(mins_maxs[6])
-    ax2.set_ylim(mins_maxs[7])
+    ax1.set_ylim(mins_maxs[7])
+    ax2.set_ylim(mins_maxs[8])
     
     # Weight stds
     ax1 = axs[7]
@@ -643,8 +644,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     divide_arenas(xs, ax)
     ax1.legend(loc = 'upper left')
     ax2.legend(loc = 'lower left')
-    ax1.set_ylim(mins_maxs[8])
-    ax2.set_ylim(mins_maxs[9])
+    ax1.set_ylim(mins_maxs[9])
+    ax2.set_ylim(mins_maxs[10])
     
     # Changes in DKL
     ax = axs[8]
@@ -659,7 +660,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax.title.set_text("Change in DKL")
     divide_arenas(xs, ax)
     #ax.legend(loc = 'lower left')
-    ax.set_ylim(mins_maxs[10])
+    ax.set_ylim(mins_maxs[11])
     
 
 

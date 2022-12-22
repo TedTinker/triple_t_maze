@@ -93,6 +93,8 @@ class Agent:
         speeds = (speeds - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
         speeds = (speeds*2)-1
         prev_actions = torch.cat([torch.zeros(actions.shape[0], 1, actions.shape[2]), actions], dim = 1)
+        
+        
                             
         # Train transitioner
         flat_images = images[:,self.args.lookahead:]*image_masks.detach()[:,self.args.lookahead-1:]
@@ -181,11 +183,11 @@ class Agent:
                 dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
                     dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
                 dkl_changes[episode] = dkl_change
+            dkl_change = log(dkl_changes.sum().item())
             
             
         
         if(self.args.dkl_change_size == "step" and self.args.naive_curiosity != "true"):
-            print("\n\nHERE!\n\n")
             dkl_changes = torch.zeros(rewards.shape)
             
             for episode in range(dkl_changes.shape[0]):
@@ -224,15 +226,10 @@ class Agent:
 
                     dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
                         dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
-                    dkl_changes[episode,step] = dkl_change        
+                    dkl_changes[episode,step] = dkl_change    
+            dkl_change = log(dkl_changes.sum().item())    
         
         
-        
-        # Get encodings for other modules
-        with torch.no_grad():
-            encoded, _ = self.transitioner.just_encode(images.detach(), speeds.detach(), prev_actions.detach())
-            next_encoded = encoded[:,1:]
-            encoded = encoded[:,:-1]
         
         if(self.args.naive_curiosity == "true"):
             if(self.args.eta == None):
@@ -255,7 +252,13 @@ class Agent:
             print("\nFEB curiosity: {}, {}.\n".format(curiosity.shape, torch.sum(curiosity)))
             
             
-        
+    
+        # Get encodings for other modules
+        with torch.no_grad():
+            encoded, _ = self.transitioner.just_encode(images.detach(), speeds.detach(), prev_actions.detach())
+            next_encoded = encoded[:,1:]
+            encoded = encoded[:,:-1]
+            
         plot_predictions = True if num in (0, -1) and plot_predictions else False
         if(plot_predictions): plot_some_predictions(self.args, images, speeds, pred_next_images, pred_next_speeds, actions, masks, self.steps, epoch)
             
@@ -263,6 +266,8 @@ class Agent:
         intrinsic_curiosity = torch.mean(curiosity*masks.detach()[:,self.args.lookahead-1:]).item()
         curiosity = torch.cat([curiosity, torch.zeros([curiosity.shape[0], self.args.lookahead-1, 1]).to(device)], dim = 1)
         rewards += curiosity
+        
+        
                 
         # Train critics
         next_action, log_pis_next = self.actor.evaluate(next_encoded.detach())
@@ -284,6 +289,8 @@ class Agent:
         critic2_loss.backward()
         self.critic2_optimizer.step()
         
+        
+        
         # Train alpha
         if self.args.alpha == None:
             actions_pred, log_pis = self.actor.evaluate(encoded.detach())
@@ -304,6 +311,7 @@ class Agent:
             self.eta = torch.exp(self.log_eta) 
             """
             self.eta = self.eta
+            
             
     
         # Train actor
@@ -341,7 +349,9 @@ class Agent:
             actor_loss = None
         
         if(mse_loss != None): mse_loss = log(mse_loss.item())
-        if(dkl_loss != None): dkl_loss = log(dkl_loss.item())
+        if(dkl_loss != None): 
+            try: dkl_loss = log(dkl_loss.item())
+            except: dkl_loss = 0
         if(alpha_loss != None): alpha_loss = alpha_loss.item()
         if(actor_loss != None): actor_loss = actor_loss.item()
         if(critic1_loss != None): critic1_loss = log(critic1_loss.item())

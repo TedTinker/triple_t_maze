@@ -101,3 +101,23 @@ step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --et
 80_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 80
 90_elbo_sample    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 90
 100_elbo_sample   : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 100
+
+
+
+dkl_rate_0       : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 0
+dkl_rate_0001    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .0001
+dkl_rate_0005    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .0005
+dkl_rate_001     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .001
+dkl_rate_005     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .005
+dkl_rate_01      : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .01
+dkl_rate_05      : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .05
+dkl_rate_p1      : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .1
+dkl_rate_p5      : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate .5
+dkl_rate_1       : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 1
+dkl_rate_5       : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 5
+dkl_rate_10      : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 10
+dkl_rate_50      : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 50
+dkl_rate_100     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 100
+dkl_rate_500     : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 500
+dkl_rate_1000    : --target_entropy -5  	--eta 0 --alpha 0 --sample_elbo 30 --dkl_rate 1000
+
