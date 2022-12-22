@@ -138,12 +138,8 @@ class Transitioner(nn.Module):
         encoding = self.encode(x)
         delete_these(False, image, speed, x)
         return(encoding, hidden) 
-
-    def forward(self, image, speed, prev_action, action, hidden = None):
-        if(len(image.shape) == 4):  sequence = False
-        else:                       sequence = True
-        action = action.to(device) ; prev_action = prev_action.to(device)
-        encoding, hidden = self.just_encode(image, speed, prev_action, hidden)
+    
+    def after_encode(self, encoding, action, sequence):
         action = self.actions_in(action)
         x = torch.cat((encoding, action), dim=-1)
         x = self.bayes(x)
@@ -163,6 +159,14 @@ class Transitioner(nn.Module):
         next_image = torch.clamp(next_image, -1, 1)
         next_speed = self.next_speed(x)
         delete_these(False, x, action)
+        return(next_image, next_speed)
+        
+    def forward(self, image, speed, prev_action, action, hidden = None):
+        if(len(image.shape) == 4):  sequence = False
+        else:                       sequence = True
+        action = action.to(device) ; prev_action = prev_action.to(device)
+        encoding, hidden = self.just_encode(image, speed, prev_action, hidden)
+        next_image, next_speed = self.after_encode(encoding, action, sequence)
         return(next_image, next_speed, hidden)
     
     def weights(self):

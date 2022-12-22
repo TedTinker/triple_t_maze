@@ -74,8 +74,8 @@ parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-A
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
-parser.add_argument("--dkl_rate",           type=float, default = .0001)# Scale bayesian dkl
-parser.add_argument("--sample_elbo",        type=int,   default = 5)   # Samples for elbo
+parser.add_argument("--dkl_rate",           type=float, default = 0)#.0001)# Scale bayesian dkl
+parser.add_argument("--sample_elbo",        type=int,   default = 1)   # Samples for elbo
 parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
 parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 

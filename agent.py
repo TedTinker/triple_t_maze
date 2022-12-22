@@ -141,7 +141,6 @@ class Agent:
         dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
             dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
         dkl_changes = torch.tile(dkl_change, rewards.shape)
-        dkl_change = log(dkl_changes.sum().item())
         
         weight_change = average_change(weights_before, weights_after)
                 
@@ -183,7 +182,6 @@ class Agent:
                 dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
                     dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
                 dkl_changes[episode] = dkl_change
-            dkl_change = log(dkl_changes.sum().item())
             
             
         
@@ -227,7 +225,8 @@ class Agent:
                     dkl_change = dkl(weights_after[0], weights_after[1], weights_before[0], weights_before[1]) + \
                         dkl(weights_after[2], weights_after[3], weights_before[2], weights_before[3])
                     dkl_changes[episode,step] = dkl_change    
-            dkl_change = log(dkl_changes.sum().item())    
+        
+        dkl_change = log(dkl_changes.sum().item())    
         
         
         
