@@ -155,11 +155,13 @@ class Agent:
                 
                 trans_errors_ = torch.zeros(rewards.shape)
                 dkl_loss_ = 0
+                encoding_, _ = self.trans_clone.just_encode(
+                    images[episode,:-self.args.lookahead].detach(), 
+                    speeds[episode,:-self.args.lookahead].detach(), 
+                    prev_actions[episode,:-self.args.lookahead].detach())
                 for _ in range(self.args.sample_elbo):
-                    pred_next_images_, pred_next_speeds_, _ = self.trans_clone(
-                        images[episode,:-self.args.lookahead].detach(), 
-                        speeds[episode,:-self.args.lookahead].detach(), 
-                        prev_actions[episode,:-self.args.lookahead].detach(), sequential_actions[episode].detach())
+                    pred_next_images_, pred_next_speeds_ = self.trans_clone.after_encode(
+                        torch.clone(encoding_).unsqueeze(0), sequential_actions[episode].detach().unsqueeze(0), True)
                     
                     flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
                     flat_pred_images_ = flat_pred_images_.flatten(2)
@@ -196,12 +198,15 @@ class Agent:
                     
                     trans_errors_ = torch.zeros(rewards.shape)
                     dkl_loss_ = 0
-                    for _ in range(self.args.sample_elbo):
-                        pred_next_images_, pred_next_speeds_, hidden = self.trans_clone(
+                    encoding_, _ = self.trans_clone.just_encode(
                             images[episode,step:step+self.args.lookahead].detach(), 
                             speeds[episode,step:step+self.args.lookahead].detach(), 
-                            prev_actions[episode,step:step+self.args.lookahead].detach(), 
-                            sequential_actions[episode,step].unsqueeze(0).detach(), hidden if hidden != None else hidden)
+                            prev_actions[episode,step:step+self.args.lookahead].detach(),
+                            hidden if hidden != None else hidden)
+                    for _ in range(self.args.sample_elbo):
+                        print("\n\n", encoding_.shape, sequential_actions[episode, step].unsqueeze(0).shape, "\n\n")
+                        pred_next_images_, pred_next_speeds_ = self.trans_clone.after_encode(
+                            torch.clone(encoding_), sequential_actions[episode, step].detach().unsqueeze(0), False)
                         
                         flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
                         flat_pred_images_ = flat_pred_images_.flatten(2)

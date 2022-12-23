@@ -80,6 +80,7 @@ parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Whic
 parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
+parser.add_argument('--keep_data',          type=int,   default = 10)
 parser.add_argument('--show_and_save',      type=int,   default = 250)
 parser.add_argument('--show_and_save_pred', type=int,   default = 250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
@@ -279,12 +280,6 @@ def delete_with_name(name, subfolder = "plots"):
     for file in files:
         if(file.startswith(name)):
             os.remove(folder + "/{}/{}".format(subfolder, file))
-            
-def divide_arenas(epochs, here = plt):
-    sums = list(accumulate(args.epochs_per_arena))
-    x = [e for e in epochs if e in sums]
-    for x_ in x:
-        here.axvline(x=x_, color = (0,0,0,.2))
 
 
 
@@ -357,8 +352,9 @@ def plot_rewards(rewards):
 
     
     
-def get_x_y(losses):
-    x = [i for i in range(len(losses)) if losses[i] != None]
+def get_x_y(losses, xs):
+    if(len(losses) == 0): return([], [])
+    x = [x for i,x in enumerate(xs) if losses[i] != None]
     y = [l for l in losses if l != None]
     return(x, y)
 
@@ -372,12 +368,19 @@ def normalize(this):
     return(this)
 
 def get_quantiles(plot_dict_list, name):
-    xs = [i for i, l in enumerate(plot_dict_list[0][name]) if l != None]
+    xs = [x for i, x in enumerate(plot_dict_list[0]["xs"]) if plot_dict_list[0][name][i] != None]
     lists = np.array([[i for i in plot_dict[name] if i != None] for plot_dict in plot_dict_list])    
     q05 = np.quantile(lists, .05, 0)
     med = np.quantile(lists, .50, 0)
     q95 = np.quantile(lists, .95, 0)
     return(xs, q05, med, q95)
+
+def divide_arenas(epochs, here = plt):
+    sums = list(accumulate(args.epochs_per_arena))
+    x = [e for e in epochs if e in sums]
+    for x_ in x:
+        here.axvline(x=x_, color = (0,0,0,.2))
+        
     
     
 line_transparency = .5 ; fill_transparency = .1
@@ -386,7 +389,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     else:                        many = False ; epochs = len(plot_dict["rew"])
     
     fig, axs = plt.subplots(9, 1, figsize = (7, 45))
-    xs = [i for i in range(epochs)]
+    if(many): xs = plot_dict[0]["xs"]
+    else:     xs = plot_dict["xs"]
     
     
     
@@ -403,8 +407,8 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         rew = plot_dict["rew"] ; rew = np.cumsum(rew)
         pun = plot_dict["pun"] ; pun = np.cumsum(pun)
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
-    ax.plot([x for x in range(len(rew))], rew, color = "turquoise", alpha = 2*line_transparency, label = "Reward")
-    ax.plot([x for x in range(len(pun))], pun, color = "pink", alpha = 2*line_transparency,      label = "Punishment")
+    ax.plot(xs, rew, color = "turquoise", alpha = 2*line_transparency, label = "Reward")
+    ax.plot(xs, pun, color = "pink", alpha = 2*line_transparency,      label = "Punishment")
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Rewards/Punishments")
     ax.title.set_text("Cumulative Rewards and Punishments")
@@ -420,9 +424,9 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         ext_xs, low_ext, ext, high_ext = get_quantiles(plot_dict, "ext")
         cur_xs, low_cur, cur, high_cur = get_quantiles(plot_dict, "cur")
         ent_xs, low_ent, ent, high_ent = get_quantiles(plot_dict, "ent")
-        _, low_ext_y = get_x_y(low_ext) ; _, high_ext_y = get_x_y(high_ext)
-        _, low_cur_y = get_x_y(low_cur) ; _, high_cur_y = get_x_y(high_cur)
-        _, low_ent_y = get_x_y(low_ent) ; _, high_ent_y = get_x_y(high_ent)
+        _, low_ext_y = get_x_y(low_ext, xs) ; _, high_ext_y = get_x_y(high_ext, xs)
+        _, low_cur_y = get_x_y(low_cur, xs) ; _, high_cur_y = get_x_y(high_cur, xs)
+        _, low_ent_y = get_x_y(low_ent, xs) ; _, high_ent_y = get_x_y(high_ent, xs)
         ax.fill_between(ext_xs, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency, linewidth = 0)
         ax.fill_between(cur_xs, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency, linewidth = 0)
         ax.fill_between(ent_xs, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency, linewidth = 0)
@@ -430,9 +434,9 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         ext = plot_dict["ext"] ; cur = plot_dict["cur"] ; ent = plot_dict["ent"]
         ext_xs = None ; cur_xs = None ; ent_xs = None
         
-    ex, ey       = get_x_y(ext)
-    icx, icy     = get_x_y(cur)
-    iex, iey     = get_x_y(ent)
+    ex, ey       = get_x_y(ext, xs)
+    icx, icy     = get_x_y(cur, xs)
+    iex, iey     = get_x_y(ent, xs)
 
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
     ax.plot(ext_xs if ext_xs != None else ex,  ey,  color = "red", alpha = line_transparency, label = "Extrinsic")
@@ -490,12 +494,12 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         crit1_xs, low_crit1, crit1, high_crit1 = get_quantiles(plot_dict, "crit1")
         crit2_xs, low_crit2, crit2, high_crit2 = get_quantiles(plot_dict, "crit2")
         
-        _, mse_y = get_x_y(mse) ; _, low_mse_y = get_x_y(low_mse)  ; _, high_mse_y = get_x_y(high_mse)
-        _, dkl_y = get_x_y(dkl) ; _, low_dkl_y = get_x_y(low_dkl)  ; _, high_dkl_y = get_x_y(high_dkl)
-        _, alpha_y = get_x_y(alpha) ; _, low_alpha_y = get_x_y(low_alpha)  ; _, high_alpha_y = get_x_y(high_alpha)
-        _, actor_y = get_x_y(actor) ; _, low_actor_y = get_x_y(low_actor)  ; _, high_actor_y = get_x_y(high_actor)
-        _, crit1_y = get_x_y(crit1) ; _, low_crit1_y = get_x_y(low_crit1)  ; _, high_crit1_y = get_x_y(high_crit1)
-        _, crit2_y = get_x_y(crit2) ; _, low_crit2_y = get_x_y(low_crit2)  ; _, high_crit2_y = get_x_y(high_crit2)
+        _, mse_y = get_x_y(mse, xs) ; _, low_mse_y = get_x_y(low_mse, xs)  ; _, high_mse_y = get_x_y(high_mse, xs)
+        _, dkl_y = get_x_y(dkl, xs) ; _, low_dkl_y = get_x_y(low_dkl, xs)  ; _, high_dkl_y = get_x_y(high_dkl, xs)
+        _, alpha_y = get_x_y(alpha, xs) ; _, low_alpha_y = get_x_y(low_alpha, xs)  ; _, high_alpha_y = get_x_y(high_alpha, xs)
+        _, actor_y = get_x_y(actor, xs) ; _, low_actor_y = get_x_y(low_actor, xs)  ; _, high_actor_y = get_x_y(high_actor, xs)
+        _, crit1_y = get_x_y(crit1, xs) ; _, low_crit1_y = get_x_y(low_crit1, xs)  ; _, high_crit1_y = get_x_y(high_crit1, xs)
+        _, crit2_y = get_x_y(crit2, xs) ; _, low_crit2_y = get_x_y(low_crit2, xs)  ; _, high_crit2_y = get_x_y(high_crit2, xs)
         
     else:
         mse = plot_dict["mse"]
@@ -505,12 +509,12 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         crit1 = plot_dict["crit1"]
         crit2 = plot_dict["crit2"]
         
-        mse_xs, mse_y = get_x_y(mse)
-        dkl_xs, dkl_y = get_x_y(dkl)
-        alpha_xs, alpha_y = get_x_y(alpha)
-        actor_xs, actor_y = get_x_y(actor)
-        crit1_xs, crit1_y = get_x_y(crit1)
-        crit2_xs, crit2_y = get_x_y(crit2)
+        mse_xs, mse_y = get_x_y(mse, xs)
+        dkl_xs, dkl_y = get_x_y(dkl, xs)
+        alpha_xs, alpha_y = get_x_y(alpha, xs)
+        actor_xs, actor_y = get_x_y(actor, xs)
+        crit1_xs, crit1_y = get_x_y(crit1, xs)
+        crit2_xs, crit2_y = get_x_y(crit2, xs)
     
     if(len(alpha) == len([a for a in alpha if a == None])):
         no_alpha = True 
@@ -588,12 +592,12 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
             which = dict["which"]
             which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
             which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
-            ax.scatter([x for x in range(len(which))], which, color = "gray", alpha = 1/len(plot_dict))
+            ax.scatter(xs, which, color = "gray", alpha = 1/len(plot_dict))
     else:
         which = plot_dict["which"]
         which = [(w, r) if type(r) != tuple else (w, sum([w_*r_ for (w_, r_) in r])) for (w, r) in which]
         which = [r"$\bf{(" + w[0] + ")}$" if w[0] in ["R", "LL", "RLL"] else w[0] for w in which]
-        ax.scatter([x for x in range(len(which))], which, color = "gray")
+        ax.scatter(xs, which, color = "gray")
         
     ax.title.set_text("Kind of Exit")
     ax.set_xlabel("Episodes")
@@ -618,7 +622,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax1.set_ylabel("Weight Mean")
     ax2.set_ylabel("Bias Mean")
     ax1.title.set_text("Change in Weight Means")
-    divide_arenas(xs, ax)
+    divide_arenas(xs, ax1)
     ax1.legend(loc = 'upper left')
     ax2.legend(loc = 'lower left')
     ax1.set_ylim(mins_maxs[7])
@@ -641,7 +645,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax1.set_ylabel("Weight STD")
     ax2.set_ylabel("Bias STD")
     ax1.title.set_text("Change in Weight STDs")
-    divide_arenas(xs, ax)
+    divide_arenas(xs, ax1)
     ax1.legend(loc = 'upper left')
     ax2.legend(loc = 'lower left')
     ax1.set_ylim(mins_maxs[9])

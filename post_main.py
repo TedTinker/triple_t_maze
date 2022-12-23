@@ -233,7 +233,6 @@ def make_end_pics(order):
     bias_std_min_max = get_min_max("bias_std", plot_dict_dict)
     dkl_change_min_max = get_min_max("dkl_change", plot_dict_dict)
     
-    trans_min_max = tuple_min_max([mse_min_max, dkl_min_max])    
     critic_min_max = tuple_min_max([critic1_min_max, critic2_min_max])
     rew_min_max = tuple_min_max([rew_min_max, pun_min_max]) 
     rew_min_max = (rew_min_max[0]*1.2, rew_min_max[1]*1.2)

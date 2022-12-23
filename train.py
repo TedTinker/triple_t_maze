@@ -148,6 +148,7 @@ class Trainer():
                 plot_dict = {
                     "args"        : self.args,
                     "folder"      : folder,
+                    "xs"          : [i+1 for i in range(len(self.rewards))],
                     "exits_rolled" : self.exits_rolled,
                     "which"       : self.which,
                     "rew"         : self.rewards,
@@ -155,17 +156,22 @@ class Trainer():
                     "ext"         : self.ext, 
                     "cur"         : self.int_cur,
                     "ent"         : self.int_ent,
-                    "mse"         : self.losses[:,0],
-                    "dkl"         : self.losses[:,1],
-                    "alpha"       : self.losses[:,2],
-                    "actor"       : self.losses[:,3],
-                    "crit1"       : self.losses[:,4],
-                    "crit2"       : self.losses[:,5],
+                    "mse"         : self.losses[1:,0],
+                    "dkl"         : self.losses[1:,1],
+                    "alpha"       : self.losses[1:,2],
+                    "actor"       : self.losses[1:,3],
+                    "crit1"       : self.losses[1:,4],
+                    "crit2"       : self.losses[1:,5],
                     "weight_mean" : [w[0] for w in self.weight_changes],
                     "weight_std"  : [w[1] for w in self.weight_changes],
                     "bias_mean"   : [w[2] for w in self.weight_changes],
                     "bias_std"    : [w[3] for w in self.weight_changes],
                     "dkl_change"  : self.dkl_change}
+                for key in plot_dict.keys():
+                    if(key in ["args", "folder"]):
+                        pass 
+                    else:
+                        plot_dict[key] = [v for i, v in enumerate(plot_dict[key]) if (i+1)%self.args.keep_data==0]
                 torch.save(plot_dict, folder + "/plot_dict.pt")
                 self.close_env(True)
                 break
