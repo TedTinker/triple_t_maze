@@ -80,7 +80,7 @@ parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Whic
 parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
-parser.add_argument('--keep_data',          type=int,   default = 10)
+parser.add_argument('--keep_data',          type=int,   default = 33)
 parser.add_argument('--show_and_save',      type=int,   default = 250)
 parser.add_argument('--show_and_save_pred', type=int,   default = 250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
@@ -353,6 +353,7 @@ def plot_rewards(rewards):
     
     
 def get_x_y(losses, xs):
+    print("\n\n{}, {}\n\n".format(len(xs), len(losses)))
     if(len(losses) == 0): return([], [])
     x = [x for i,x in enumerate(xs) if losses[i] != None]
     y = [l for l in losses if l != None]
@@ -426,7 +427,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         ent_xs, low_ent, ent, high_ent = get_quantiles(plot_dict, "ent")
         _, low_ext_y = get_x_y(low_ext, xs) ; _, high_ext_y = get_x_y(high_ext, xs)
         _, low_cur_y = get_x_y(low_cur, xs) ; _, high_cur_y = get_x_y(high_cur, xs)
-        _, low_ent_y = get_x_y(low_ent, xs) ; _, high_ent_y = get_x_y(high_ent, xs)
+        _, low_ent_y = get_x_y(low_ent, ent_xs) ; _, high_ent_y = get_x_y(high_ent, ent_xs)
         ax.fill_between(ext_xs, low_ext_y, high_ext_y, color = "red", alpha = fill_transparency, linewidth = 0)
         ax.fill_between(cur_xs, low_cur_y, high_cur_y, color = "green", alpha = fill_transparency, linewidth = 0)
         ax.fill_between(ent_xs, low_ent_y, high_ent_y, color = "blue", alpha = fill_transparency, linewidth = 0)
@@ -435,9 +436,12 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         ext_xs = None ; cur_xs = None ; ent_xs = None
         
     ex, ey       = get_x_y(ext, xs)
-    icx, icy     = get_x_y(cur, xs)
-    iex, iey     = get_x_y(ent, xs)
-
+    icx, icy     = get_x_y(cur, cur_xs if cur_xs != None else xs)
+    iex, iey     = get_x_y(ent, ent_xs if ent_xs != None else xs)
+    
+    print("\n\nxs: {}\next: {}, ex: {}, ey: {}\ncur: {}, icx: {}, icy: {}\nent: {}, iex: {}, iey: {}\n\n".format(
+        len(xs), len(ex), len(ext), len(ey), len(cur), len(icx), len(icy), len(ent), len(iex), len(iey)))
+    
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
     ax.plot(ext_xs if ext_xs != None else ex,  ey,  color = "red", alpha = line_transparency, label = "Extrinsic")
     if(not all(i == 0 for i in icy)):
@@ -497,7 +501,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
         _, mse_y = get_x_y(mse, xs) ; _, low_mse_y = get_x_y(low_mse, xs)  ; _, high_mse_y = get_x_y(high_mse, xs)
         _, dkl_y = get_x_y(dkl, xs) ; _, low_dkl_y = get_x_y(low_dkl, xs)  ; _, high_dkl_y = get_x_y(high_dkl, xs)
         _, alpha_y = get_x_y(alpha, xs) ; _, low_alpha_y = get_x_y(low_alpha, xs)  ; _, high_alpha_y = get_x_y(high_alpha, xs)
-        _, actor_y = get_x_y(actor, xs) ; _, low_actor_y = get_x_y(low_actor, xs)  ; _, high_actor_y = get_x_y(high_actor, xs)
+        _, actor_y = get_x_y(actor, actor_xs) ; _, low_actor_y = get_x_y(low_actor, actor_xs)  ; _, high_actor_y = get_x_y(high_actor, actor_xs)
         _, crit1_y = get_x_y(crit1, xs) ; _, low_crit1_y = get_x_y(low_crit1, xs)  ; _, high_crit1_y = get_x_y(high_crit1, xs)
         _, crit2_y = get_x_y(crit2, xs) ; _, low_crit2_y = get_x_y(low_crit2, xs)  ; _, high_crit2_y = get_x_y(high_crit2, xs)
         
@@ -676,3 +680,4 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
 
 if args.id != 0:
     print("units.py loaded.")
+# %%

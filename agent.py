@@ -304,6 +304,8 @@ class Agent:
             alpha_loss.backward()
             self.alpha_optimizer.step()
             self.alpha = torch.exp(self.log_alpha) 
+        else:
+            alpha_loss = None
             
         # Train eta
         if(self.args.eta == None):
@@ -324,7 +326,6 @@ class Agent:
             else:                       
                 alpha = self.args.alpha
                 actions_pred, log_pis = self.actor.evaluate(encoded.detach())
-                alpha_loss = None
 
             if self._action_prior == "normal":
                 loc = torch.zeros(self.action_size, dtype=torch.float64)
@@ -349,7 +350,6 @@ class Agent:
             
         else:
             intrinsic_entropy = None
-            alpha_loss = None
             actor_loss = None
         
         if(mse_loss != None): mse_loss = log(mse_loss.item())
