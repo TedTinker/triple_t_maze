@@ -88,7 +88,7 @@ def plot_all_positions(training_name):
     f = os.listdir("saves")
     for folder in f:
         breaks = folder.split("_")
-        if(breaks[-1] in ["positions", "done"] or folder[-4:] == ".png"): pass 
+        if(breaks[-1] in ["predictions", "positions", "done", "shared"] or folder[-4:] == ".png"): pass 
         elif("_".join(breaks[:-1]) == training_name):
             _, pos_dict = torch.load("saves/" + folder + "/pos_dict.pt")
             pos_dicts.append(pos_dict)
@@ -142,7 +142,8 @@ def make_mega_vid(order, fps = 1):
     for folder in os.listdir("saves"):
         folders.append(folder)
     if("all_positions" in folders): shutil.rmtree("saves/all_positions")
-    os.mkdir("saves/all_shared")
+    try: os.mkdir("saves/all_shared")
+    except: pass
     
     length = len(types[list(types.keys())[0]])
     rows = len(order) 
@@ -207,7 +208,8 @@ def make_end_pics(order):
 
     all_folders = []
     for folder in os.listdir("saves"):
-        if("_".join(folder.split("_")[:-1]) in order and folder.split('_')[-1] != "shared"):
+        breaks = folder.split("_")
+        if("_".join(breaks[:-1]) in order and not breaks[-1] in ["shared", "predictions"] and folder[-4:] != ".png"):
             all_folders.append(folder)
     all_folders.sort()
                 
@@ -253,8 +255,11 @@ def make_end_pics(order):
     for training_name in order:
         folders = []
         for folder in os.listdir("saves"):
-            if("_".join(folder.split("_")[:-1]) == training_name):
-                folders.append("saves/" + folder)
+            breaks = folder.split("_")
+            if("_".join(breaks[:-1]) == training_name):
+                if(breaks[-1] in ["predictions", "positions", "done", "shared"] or folder[-4:] == ".png"): pass 
+                else: folders.append("saves/" + folder)
+            
         folders.sort()
             
         images = []    
@@ -270,11 +275,13 @@ def make_end_pics(order):
             
     # Predictions
     for training_name in order:
-        os.mkdir("saves/{}_predictions".format(training_name))
+        try: os.mkdir("saves/{}_predictions".format(training_name))
+        except: pass
         
         folders = []
         for folder in os.listdir("saves"):
-            if("_".join(folder.split("_")[:-1]) == training_name and not folder.split('_')[-1] in ("shared", "predictions")):
+            breaks = folder.split("_")
+            if("_".join(breaks[:-1]) == training_name and not breaks[-1] in ["shared", "predictions"] and folder[-4:] != ".png"):
                 folders.append(folder)
         
         for folder in folders:
@@ -286,7 +293,7 @@ def make_end_pics(order):
             for i, image in enumerate(images):
                 new_image.paste(image, (0, i*image.size[1]))
             new_image.save("saves/{}_predictions/predictions_{}.png".format(training_name, folder.split("_")[-1]))
-            shutil.rmtree("saves/{}/predictions".format(folder))
+            #shutil.rmtree("saves/{}/predictions".format(folder))
             
         images = []
         files = os.listdir("saves/{}_predictions".format(training_name)) ; files.sort()
@@ -297,7 +304,7 @@ def make_end_pics(order):
         for i, image in enumerate(images):
             new_image.paste(image, (i*(10+image.size[0]), 0))
         new_image.save("saves/{}_predictions.png".format(training_name))
-        shutil.rmtree("saves/{}_predictions".format(training_name))
+        #shutil.rmtree("saves/{}_predictions".format(training_name))
         
 def make_together_pic(order):
     real_order = [] 

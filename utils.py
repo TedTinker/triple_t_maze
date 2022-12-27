@@ -65,7 +65,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=tuple, default = (500, 1500, 3000))
+parser.add_argument('--epochs_per_arena',   type=tuple, default = (10,10,10))#(500, 1500, 3000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -80,9 +80,9 @@ parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Whic
 parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 
 # Plotting and saving
-parser.add_argument('--keep_data',          type=int,   default = 33)
-parser.add_argument('--show_and_save',      type=int,   default = 250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 250)
+parser.add_argument('--keep_data',          type=int,   default = 10)
+parser.add_argument('--show_and_save',      type=int,   default = 2)#250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 2)#250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
@@ -353,7 +353,6 @@ def plot_rewards(rewards):
     
     
 def get_x_y(losses, xs):
-    print("\n\n{}, {}\n\n".format(len(xs), len(losses)))
     if(len(losses) == 0): return([], [])
     x = [x for i,x in enumerate(xs) if losses[i] != None]
     y = [l for l in losses if l != None]
@@ -438,9 +437,6 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ex, ey       = get_x_y(ext, xs)
     icx, icy     = get_x_y(cur, cur_xs if cur_xs != None else xs)
     iex, iey     = get_x_y(ent, ent_xs if ent_xs != None else xs)
-    
-    print("\n\nxs: {}\next: {}, ex: {}, ey: {}\ncur: {}, icx: {}, icy: {}\nent: {}, iex: {}, iey: {}\n\n".format(
-        len(xs), len(ex), len(ext), len(ey), len(cur), len(icx), len(icy), len(ent), len(iex), len(iey)))
     
     ax.axhline(y = 0, color = 'gray', linestyle = '--')
     ax.plot(ext_xs if ext_xs != None else ex,  ey,  color = "red", alpha = line_transparency, label = "Extrinsic")

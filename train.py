@@ -172,7 +172,6 @@ class Trainer():
                         pass 
                     else:
                         plot_dict[key] = [v for i, v in enumerate(plot_dict[key]) if (i+1)%self.args.keep_data==0 or i==0 or (i+1)==len(plot_dict[key])]
-                        print("\n\n{} : {}\n\n".format(key, len(plot_dict[key])))
                 torch.save(plot_dict, folder + "/plot_dict.pt")
                 self.close_env(True)
                 break

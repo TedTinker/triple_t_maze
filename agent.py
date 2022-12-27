@@ -204,7 +204,6 @@ class Agent:
                             prev_actions[episode,step:step+self.args.lookahead].detach(),
                             hidden if hidden != None else hidden)
                     for _ in range(self.args.sample_elbo):
-                        print("\n\n", encoding_.shape, sequential_actions[episode, step].unsqueeze(0).shape, "\n\n")
                         pred_next_images_, pred_next_speeds_ = self.trans_clone.after_encode(
                             torch.clone(encoding_), sequential_actions[episode, step].detach().unsqueeze(0), False)
                         
@@ -232,6 +231,8 @@ class Agent:
                     dkl_changes[episode,step] = dkl_change    
         
         dkl_change = log(dkl_changes.sum().item())    
+        
+        print("\n\n{}\n\n".format(dkl_changes))
         
         
         
