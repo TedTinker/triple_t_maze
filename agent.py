@@ -39,7 +39,7 @@ class Agent:
         self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr, weight_decay=0)     
         
         self.trans_clone = Transitioner(self.args)
-        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_lr, weight_decay=0)
+        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_clone_lr, weight_decay=0)
                            
         self.actor = Actor(self.args)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr, weight_decay=0)     
@@ -219,6 +219,8 @@ class Agent:
                         dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
                     mse_loss_ = trans_errors_.sum()
                     trans_loss_ = mse_loss_ + dkl_loss_
+                    
+                    trans_loss /= 16
                     
                     self.opt_clone.zero_grad()
                     trans_loss_.sum().backward()

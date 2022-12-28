@@ -51,6 +51,7 @@ parser.add_argument('--hidden_size',        type=int,   default = 128)
 parser.add_argument('--encode_size',        type=int,   default = 128)
 parser.add_argument('--lstm_size',          type=int,   default = 256)
 parser.add_argument('--trans_lr',           type=float, default = .005)
+parser.add_argument('--trans_clone_lr',     type=float, default = .005/(16))
 parser.add_argument('--actor_lr',           type=float, default = .005) 
 parser.add_argument('--critic_lr',          type=float, default = .005) 
 parser.add_argument('--alpha_lr',           type=float, default = .01) 
@@ -388,7 +389,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     if(type(plot_dict) == list): many = True  ; epochs = len(plot_dict[0]["rew"])
     else:                        many = False ; epochs = len(plot_dict["rew"])
     
-    fig, axs = plt.subplots(9, 1, figsize = (7, 45))
+    fig, axs = plt.subplots(10, 1, figsize = (7, 50))
     if(many): xs = plot_dict[0]["xs"]
     else:     xs = plot_dict["xs"]
     
@@ -651,7 +652,7 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     ax1.set_ylim(mins_maxs[9])
     ax2.set_ylim(mins_maxs[10])
     
-    # Changes in DKL
+    # Changes in ln DKL
     ax = axs[8]
     if(many): 
         dkl_xs, low_dkl, dkl, high_dkl = get_quantiles(plot_dict, "dkl_change")
@@ -665,6 +666,22 @@ def plots(plot_dict, mins_maxs, folder = folder, name = ""):
     divide_arenas(xs, ax)
     #ax.legend(loc = 'lower left')
     ax.set_ylim(mins_maxs[11])
+    
+    # Changes in ln DKL
+    ax = axs[9]
+    if(many): 
+        low_dkl  = np.exp(np.array(low_dkl))
+        high_dkl = np.exp(np.array(high_dkl))
+        ax.fill_between(dkl_xs, low_dkl, high_dkl, color = "green", alpha = fill_transparency, linewidth = 0)
+    dkl = np.exp(np.array(dkl))
+    ax.plot(xs, dkl, color = "green", alpha = line_transparency, label = "DKL change")
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("DKL change")
+    ax.title.set_text("Change in DKL")
+    divide_arenas(xs, ax)
+    #ax.legend(loc = 'lower left')
+    mins_maxs_dkl = np.exp(np.array(mins_maxs[11]))
+    ax.set_ylim(mins_maxs_dkl)
     
 
 

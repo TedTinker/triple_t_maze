@@ -12,13 +12,13 @@ from utils import args, device, ConstrainedConv2d, delete_these, \
 
 
 
-class Transitioner(nn.Module):
 
+class Summarizer(nn.Module):
     def __init__(self, args):
-        super(Transitioner, self).__init__()
+        super(Summarizer, self).__init__()
 
         self.args = args
-
+        
         self.image_in_1 = nn.Sequential(
             ConstrainedConv2d(
                 in_channels = 4, 
@@ -59,6 +59,49 @@ class Transitioner(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(self.args.hidden_size, self.args.encode_size),
             nn.LeakyReLU())
+        
+        self.image_in_1.apply(init_weights)
+        self.image_in_2.apply(init_weights)
+        self.speed_in.apply(init_weights)
+        self.prev_action_in.apply(init_weights)
+        self.lstm.apply(init_weights)
+        self.encode.apply(init_weights)
+        
+    def forward(self, image, speed, prev_action, hidden = None):
+        image = image.to(device); speed = speed.to(device)
+        if(len(image.shape) == 4):  sequence = False
+        else:                       sequence = True
+        image = image.permute((0,1,-1,2,3) if sequence else (0, -1, 1, 2))
+        batch_size = image.shape[0]
+        if(sequence): image = image.reshape(image.shape[0]*image.shape[1], image.shape[2], image.shape[3], image.shape[4])
+        image = self.image_in_1(image).flatten(1)
+        image = self.image_in_2(image)
+        if(sequence): image = image.reshape(batch_size, image.shape[0]//batch_size, image.shape[1])
+        speed = (speed - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
+        speed = (speed*2)-1
+        speed = self.speed_in(speed.float())
+        prev_action = self.prev_action_in(prev_action.to(device))
+        x = torch.cat([image, speed, prev_action], -1)
+        if(not sequence): x = x.view(x.shape[0], 1, x.shape[1])
+        self.lstm.flatten_parameters()
+        if(hidden == None): x, hidden = self.lstm(x)
+        else:               x, hidden = self.lstm(x, (hidden[0], hidden[1]))
+        if(not sequence): x = x.view(x.shape[0], x.shape[-1])
+        encoding = self.encode(x)
+        delete_these(False, image, speed, x)
+        return(encoding, hidden) 
+
+
+
+
+class Transitioner(nn.Module):
+
+    def __init__(self, args):
+        super(Transitioner, self).__init__()
+
+        self.args = args
+
+        self.summarizer = Summarizer(self.args)
 
         self.actions_in = nn.Sequential(
             nn.Linear(2*self.args.lookahead, self.args.hidden_size),
@@ -102,12 +145,7 @@ class Transitioner(nn.Module):
         self.next_speed = nn.Sequential(
             nn.Linear(self.args.hidden_size, 1, bias = False)) 
 
-        self.image_in_1.apply(init_weights)
-        self.image_in_2.apply(init_weights)
-        self.speed_in.apply(init_weights)
-        self.prev_action_in.apply(init_weights)
-        self.lstm.apply(init_weights)
-        self.encode.apply(init_weights)
+        self.summarizer.apply(init_weights)
         self.actions_in.apply(init_weights)
         self.bayes.apply(init_weights)
         self.next_image_1.apply(init_weights)
@@ -116,27 +154,7 @@ class Transitioner(nn.Module):
         self.to(device)
 
     def just_encode(self, image, speed, prev_action, hidden = None):
-        image = image.to(device); speed = speed.to(device)
-        if(len(image.shape) == 4):  sequence = False
-        else:                       sequence = True
-        image = image.permute((0,1,-1,2,3) if sequence else (0, -1, 1, 2))
-        batch_size = image.shape[0]
-        if(sequence): image = image.reshape(image.shape[0]*image.shape[1], image.shape[2], image.shape[3], image.shape[4])
-        image = self.image_in_1(image).flatten(1)
-        image = self.image_in_2(image)
-        if(sequence): image = image.reshape(batch_size, image.shape[0]//batch_size, image.shape[1])
-        speed = (speed - self.args.min_speed) / (self.args.max_speed - self.args.min_speed)
-        speed = (speed*2)-1
-        speed = self.speed_in(speed.float())
-        prev_action = self.prev_action_in(prev_action.to(device))
-        x = torch.cat([image, speed, prev_action], -1)
-        if(not sequence): x = x.view(x.shape[0], 1, x.shape[1])
-        self.lstm.flatten_parameters()
-        if(hidden == None): x, hidden = self.lstm(x)
-        else:               x, hidden = self.lstm(x, (hidden[0], hidden[1]))
-        if(not sequence): x = x.view(x.shape[0], x.shape[-1])
-        encoding = self.encode(x)
-        delete_these(False, image, speed, x)
+        encoding, hidden = self.summarizer(image, speed, prev_action, hidden)
         return(encoding, hidden) 
     
     def after_encode(self, encoding, action, sequence):
