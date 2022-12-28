@@ -257,7 +257,7 @@ def make_end_pics(order):
         for folder in os.listdir("saves"):
             breaks = folder.split("_")
             if("_".join(breaks[:-1]) == training_name):
-                if(breaks[-1] in ["predictions", "positions", "done", "shared"] or folder[-4:] == ".png"): pass 
+                if(breaks[-1] in ["predictions", "positions", "done"] or folder[-4:] == ".png"): pass 
                 else: folders.append("saves/" + folder)
             
         folders.sort()

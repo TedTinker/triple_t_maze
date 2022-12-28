@@ -65,7 +65,7 @@ parser.add_argument('--discard_memory',     type=bool,  default = False)
 parser.add_argument('--fill_memory',        type=bool,  default = False)
 
 # Training
-parser.add_argument('--epochs_per_arena',   type=tuple, default = (10,10,10))#(500, 1500, 3000))
+parser.add_argument('--epochs_per_arena',   type=tuple, default = (500, 1500, 3000))
 parser.add_argument('--episodes_per_epoch', type=int,   default = 1)
 parser.add_argument('--iterations',         type=int,   default = 1)
 parser.add_argument("--d",                  type=int,   default = 2)    # Delay to train actors
@@ -81,8 +81,8 @@ parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "b
 
 # Plotting and saving
 parser.add_argument('--keep_data',          type=int,   default = 10)
-parser.add_argument('--show_and_save',      type=int,   default = 2)#250)
-parser.add_argument('--show_and_save_pred', type=int,   default = 2)#250)
+parser.add_argument('--show_and_save',      type=int,   default = 250)
+parser.add_argument('--show_and_save_pred', type=int,   default = 250)
 parser.add_argument('--predictions_to_plot',type=int,   default = 1)
 
 try:    args = parser.parse_args()
