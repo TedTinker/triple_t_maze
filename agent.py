@@ -38,8 +38,13 @@ class Agent:
         self.transitioner = Transitioner(self.args)
         self.trans_optimizer = optim.Adam(self.transitioner.parameters(), lr=self.args.trans_lr, weight_decay=0)     
         
+        clone_lr = self.args.trans_lr 
+        if(self.args.dkl_change_size == "episode" or self.args.dkl_change_size == "step"):
+            clone_lr /= self.args.batch_size
+        if(self.args.dkl_change_size == "step"):
+            clone_lr /= self.args.max_steps
         self.trans_clone = Transitioner(self.args)
-        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=self.args.trans_clone_lr, weight_decay=0)
+        self.opt_clone = optim.Adam(self.trans_clone.parameters(), lr=clone_lr, weight_decay=0)
                            
         self.actor = Actor(self.args)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.args.actor_lr, weight_decay=0)     
@@ -149,19 +154,21 @@ class Agent:
         if(self.args.dkl_change_size == "episode" and self.args.naive_curiosity != "true"):
             dkl_changes = torch.zeros(rewards.shape)
             
+            with torch.no_grad():
+                encoding_, _ = self.trans_clone.just_encode(
+                    images[:,:-self.args.lookahead].detach(), 
+                    speeds[:,:-self.args.lookahead].detach(), 
+                    prev_actions[:,:-self.args.lookahead].detach())
+            
             for episode in range(dkl_changes.shape[0]):
                 
                 self.trans_clone.load_state_dict(old_state_dict)
-                
                 trans_errors_ = torch.zeros(rewards.shape)
                 dkl_loss_ = 0
-                encoding_, _ = self.trans_clone.just_encode(
-                    images[episode,:-self.args.lookahead].detach(), 
-                    speeds[episode,:-self.args.lookahead].detach(), 
-                    prev_actions[episode,:-self.args.lookahead].detach())
+                
                 for _ in range(self.args.sample_elbo):
                     pred_next_images_, pred_next_speeds_ = self.trans_clone.after_encode(
-                        torch.clone(encoding_).unsqueeze(0), sequential_actions[episode].detach().unsqueeze(0), True)
+                        torch.clone(encoding_[episode]).unsqueeze(0), sequential_actions[episode].detach().unsqueeze(0), True)
                     
                     flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
                     flat_pred_images_ = flat_pred_images_.flatten(2)
@@ -175,7 +182,7 @@ class Agent:
                     dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
                 mse_loss_ = trans_errors_.sum()
                 trans_loss_ = mse_loss_ + dkl_loss_
-                
+                                
                 self.opt_clone.zero_grad()
                 trans_loss_.sum().backward()
                 self.opt_clone.step()
@@ -190,22 +197,22 @@ class Agent:
         if(self.args.dkl_change_size == "step" and self.args.naive_curiosity != "true"):
             dkl_changes = torch.zeros(rewards.shape)
             
+            with torch.no_grad():
+                encoding_, _ = self.trans_clone.just_encode(
+                    images[:,:-self.args.lookahead].detach(), 
+                    speeds[:,:-self.args.lookahead].detach(), 
+                    prev_actions[:,:-self.args.lookahead].detach())
+            
             for episode in range(dkl_changes.shape[0]):
-                hidden = None
                 for step in range(dkl_changes.shape[1]):
                     
                     self.trans_clone.load_state_dict(old_state_dict)
-                    
                     trans_errors_ = torch.zeros(rewards.shape)
                     dkl_loss_ = 0
-                    encoding_, _ = self.trans_clone.just_encode(
-                            images[episode,step:step+self.args.lookahead].detach(), 
-                            speeds[episode,step:step+self.args.lookahead].detach(), 
-                            prev_actions[episode,step:step+self.args.lookahead].detach(),
-                            hidden if hidden != None else hidden)
+                    
                     for _ in range(self.args.sample_elbo):
                         pred_next_images_, pred_next_speeds_ = self.trans_clone.after_encode(
-                            torch.clone(encoding_), sequential_actions[episode, step].detach().unsqueeze(0), False)
+                            torch.clone(encoding_[episode, step]).unsqueeze(0), sequential_actions[episode, step].detach().unsqueeze(0), False)
                         
                         flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
                         flat_pred_images_ = flat_pred_images_.flatten(2)
@@ -219,8 +226,6 @@ class Agent:
                         dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
                     mse_loss_ = trans_errors_.sum()
                     trans_loss_ = mse_loss_ + dkl_loss_
-                    
-                    trans_loss /= 16
                     
                     self.opt_clone.zero_grad()
                     trans_loss_.sum().backward()
