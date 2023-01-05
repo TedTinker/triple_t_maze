@@ -130,6 +130,7 @@ class Agent:
             errors = torch.sum(errors, -1).unsqueeze(-1)
             trans_errors += errors / self.args.sample_elbo
             dkl_loss += self.args.dkl_rate * b_kl_loss(self.transitioner) / self.args.sample_elbo
+        trans_errors *= masks
         mse_loss = trans_errors.sum()
         trans_loss = mse_loss + dkl_loss
         print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
@@ -180,6 +181,7 @@ class Agent:
                     errors_ = torch.sum(errors_, -1).unsqueeze(-1)
                     trans_errors_ += errors_ / self.args.sample_elbo
                     dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
+                trans_errors_ *= masks
                 mse_loss_ = trans_errors_.sum()
                 trans_loss_ = mse_loss_ + dkl_loss_
                                 
@@ -224,6 +226,7 @@ class Agent:
                         errors_ = torch.sum(errors_, -1).unsqueeze(-1)
                         trans_errors_ += errors_ / self.args.sample_elbo
                         dkl_loss_ += self.args.dkl_rate * b_kl_loss(self.trans_clone) / self.args.sample_elbo
+                    trans_errors_ *= masks 
                     mse_loss_ = trans_errors_.sum()
                     trans_loss_ = mse_loss_ + dkl_loss_
                     
@@ -239,6 +242,8 @@ class Agent:
         
         dkl_change = log(dkl_changes.sum().item())    
         
+        print("\n\n{}\n\n".format(dkl_changes))
+        dkl_changes *= masks 
         print("\n\n{}\n\n".format(dkl_changes))
         
         

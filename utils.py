@@ -47,9 +47,9 @@ parser.add_argument('--max_yaw_change',     type=float, default = pi/2)
 # Module 
 parser.add_argument('--lookahead',          type=int,   default = 1)
 parser.add_argument('--batch_size',         type=int,   default = 16)
-parser.add_argument('--hidden_size',        type=int,   default = 64)#128)
-parser.add_argument('--encode_size',        type=int,   default = 64)#128)
-parser.add_argument('--lstm_size',          type=int,   default = 64)#256)
+parser.add_argument('--hidden_size',        type=int,   default = 64)
+parser.add_argument('--encode_size',        type=int,   default = 64)
+parser.add_argument('--lstm_size',          type=int,   default = 64)
 parser.add_argument('--trans_lr',           type=float, default = .005)
 parser.add_argument('--actor_lr',           type=float, default = .005) 
 parser.add_argument('--critic_lr',          type=float, default = .005) 
@@ -74,8 +74,8 @@ parser.add_argument("--target_entropy",     type=float, default = -2)   # Soft-A
 parser.add_argument("--eta",                type=float, default = None) # Scale curiosity
 parser.add_argument("--eta_rate",           type=float, default = 1)    # Scale eta
 parser.add_argument("--tau",                type=float, default = .05)  # For soft-updating target critics
-parser.add_argument("--dkl_rate",           type=float, default = 0)#.0001)# Scale bayesian dkl
-parser.add_argument("--sample_elbo",        type=int,   default = 1)   # Samples for elbo
+parser.add_argument("--dkl_rate",           type=float, default = .0001)# Scale bayesian dkl
+parser.add_argument("--sample_elbo",        type=int,   default = 5)   # Samples for elbo
 parser.add_argument("--naive_curiosity",    type=str,   default = "true") # Which kind of curiosity
 parser.add_argument("--dkl_change_size",    type=str,   default = "batch")  # "batch", "episode", "step"
 
