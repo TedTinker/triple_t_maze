@@ -199,7 +199,6 @@ class Env():
     
       
 
-
 if __name__ == "__main__":
     env = Env("3", GUI = True)
     env.reset()   

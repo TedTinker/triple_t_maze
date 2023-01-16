@@ -123,7 +123,6 @@ class Agent:
             flat_pred_images = pred_next_images*image_masks.detach()[:,self.args.lookahead-1:]
             flat_pred_images = flat_pred_images.flatten(2)
             flat_pred_speeds = pred_next_speeds*masks.detach()[:,self.args.lookahead-1:]
-            flat_pred_speeds = flat_pred_speeds
             flat_pred = torch.cat([flat_pred_images, flat_pred_speeds], dim = -1)
             
             errors = F.mse_loss(flat_pred, flat_real.detach(), reduction = "none") 
@@ -136,6 +135,7 @@ class Agent:
         print("\nMSE: {}. KL: {}.\n".format(mse_loss.item(), dkl_loss.item()))
         
         old_state_dict = self.transitioner.state_dict() # For curiosity
+        self.trans_clone.load_state_dict(old_state_dict)
         
         weights_before = self.transitioner.weights()
     
@@ -174,7 +174,6 @@ class Agent:
                     flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
                     flat_pred_images_ = flat_pred_images_.flatten(2)
                     flat_pred_speeds_ = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
-                    flat_pred_speeds_ = flat_pred_speeds_
                     flat_pred_ = torch.cat([flat_pred_images_, flat_pred_speeds_], dim = -1)
                     
                     errors_ = F.mse_loss(flat_pred_, flat_real.detach(), reduction = "none") 
@@ -219,7 +218,6 @@ class Agent:
                         flat_pred_images_ = pred_next_images_*image_masks.detach()[:,self.args.lookahead-1:]
                         flat_pred_images_ = flat_pred_images_.flatten(2)
                         flat_pred_speeds_ = pred_next_speeds_*masks.detach()[:,self.args.lookahead-1:]
-                        flat_pred_speeds_ = flat_pred_speeds_
                         flat_pred_ = torch.cat([flat_pred_images_, flat_pred_speeds_], dim = -1)
                         
                         errors_ = F.mse_loss(flat_pred_, flat_real.detach(), reduction = "none") 
