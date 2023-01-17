@@ -240,9 +240,9 @@ class Agent:
         
         dkl_change = log(dkl_changes.sum().item())    
         
-        print("\n\n{}\n\n".format(dkl_changes))
+        #print("\nBEFORE\n{}\n\n".format(dkl_changes))
         dkl_changes *= masks 
-        print("\n\n{}\n\n".format(dkl_changes))
+        #print("\nAFTER\n{}\n\n".format(dkl_changes))
         
         
         

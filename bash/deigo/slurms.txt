@@ -63,6 +63,15 @@ batch_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --e
 batch_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001
 batch_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005
 
+batch_curiosity_1_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0000001
+batch_curiosity_2_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0000005
+batch_curiosity_3_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .000001
+batch_curiosity_4_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .000005
+batch_curiosity_5_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .00001
+batch_curiosity_6_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .00005
+batch_curiosity_7_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0001
+batch_curiosity_8_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0005
+
 episode_curiosity_1 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000001 --dkl_change_size episode
 episode_curiosity_2 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0000005 --dkl_change_size episode
 episode_curiosity_3 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .000001 --dkl_change_size episode
@@ -80,6 +89,15 @@ step_curiosity_5 : --target_entropy -5 --alpha 0 --naive_curiosity false    --et
 step_curiosity_6 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .00005 --dkl_change_size step
 step_curiosity_7 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0001 --dkl_change_size step
 step_curiosity_8 : --target_entropy -5 --alpha 0 --naive_curiosity false    --eta .0005 --dkl_change_size step
+
+step_curiosity_1_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0000001 --dkl_change_size step
+step_curiosity_2_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0000005 --dkl_change_size step
+step_curiosity_3_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .000001 --dkl_change_size step
+step_curiosity_4_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .000005 --dkl_change_size step
+step_curiosity_5_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .00001 --dkl_change_size step
+step_curiosity_6_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .00005 --dkl_change_size step
+step_curiosity_7_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0001 --dkl_change_size step
+step_curiosity_8_w_entropy : --target_entropy 0 --naive_curiosity false    --eta .0005 --dkl_change_size step
 
 
 

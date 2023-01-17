@@ -297,7 +297,7 @@ if __name__ == "__main__":
 
     print("\n\n")
     print(transitioner)
-    transitioner.bayesian()
+    transitioner.weights()
     print()
     print(torch_summary(transitioner, 
                         ((1, 1, args.image_size, args.image_size, 4), # Image
